@@ -33,7 +33,7 @@ export default function HeaderSection() {
                       Dashboard
                       </Link>
                       <Link href="/deposit" className="block px-2 py-1 text-lg">
-                      Request Loan
+                      Deposit
                   </Link>
                 </nav>
               </SheetContent>
