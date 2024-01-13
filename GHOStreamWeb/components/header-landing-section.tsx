@@ -50,7 +50,7 @@ export default function HeaderLandingSection() {
                   </Link>
               </Button>
               <Button asChild variant="ghost">
-                  <Link href="/add-contract" className="text-sm font-medium transition-colors">
+                  <Link href="/deposit" className="text-sm font-medium transition-colors">
                       Deposit
                   </Link>
               </Button>
