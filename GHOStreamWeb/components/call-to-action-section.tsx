@@ -21,13 +21,13 @@ export default function CallToActionSection() {
           </div>
           <div className="px-6 py-4 bg-gray-100 dark:bg-gray-900">
             { !isConnected && (
-                <Button onClick={() => setOpen(true)} >
+                <Button onClick={() => setOpen(true)} variant={"outline"} className="border border-black border-2 shadow-left-bottom">
                   Join Now
                 </Button>
               )}
               { isConnected && (
                 <Link
-                className="inline-flex h-10 items-center justify-center rounded-md bg-gray-900 px-8 text-sm font-medium text-gray-50 shadow transition-colors hover:bg-gray-900/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-50/90 dark:focus-visible:ring-gray-300"
+                className="inline-flex h-10 items-center justify-center rounded-md px-8 border border-black border-2 shadow-left-bottom"
                 href="/dashboard"
                 >
                 Get Started
@@ -43,13 +43,13 @@ export default function CallToActionSection() {
           </div>
           <div className="px-6 py-4 bg-gray-100 dark:bg-gray-900">
               { !isConnected && (
-                <Button onClick={() => setOpen(true)} >
+                <Button onClick={() => setOpen(true)}  variant={"outline"} className="border border-black border-2 shadow-left-bottom">
                   Join Now
                 </Button>
               )}
               { isConnected && (
                 <Link
-                className="inline-flex h-10 items-center justify-center rounded-md bg-gray-900 px-8 text-sm font-medium text-gray-50 shadow transition-colors hover:bg-gray-900/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-50/90 dark:focus-visible:ring-gray-300"
+                className="inline-flex h-10 items-center justify-center rounded-md px-8 border border-black border-2 shadow-left-bottom"
                 href="/deposit"
                 >
                 Get Started
