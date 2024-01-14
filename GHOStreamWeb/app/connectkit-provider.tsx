@@ -46,22 +46,22 @@ export const ConnectkitProvider = ({ children }: { children: React.ReactNode }) 
   
       // Optional
       appDescription: "Streamline",
-      // appUrl: "https://ghostream.vercel.app/",
+      appUrl: "https://streamline.vercel.app/",
       // appIcon: "https://family.co/logo.png", // your app's icon, no bigger than 1024x1024px (max. 1MB)
       chains: allowedChains,
        connectors: [
           new GoogleSocialWalletConnector(options),
-      //    new GithubSocialWalletConnector(options),
-      //    new DiscordSocialWalletConnector(options),
-      //    new TwitchSocialWalletConnector(options),
-      //    new TwitterSocialWalletConnector(options),
+          new GithubSocialWalletConnector(options),
+          new DiscordSocialWalletConnector(options),
+          new TwitchSocialWalletConnector(options),
+          new TwitterSocialWalletConnector(options),
           new InjectedConnector({ 
            chains: allowedChains,
           }),
-      // new CoinbaseWalletConnector({
-      //  chains: allowedChains,
-      //  options: { appName: "Streamline" }
-      // }),
+          new CoinbaseWalletConnector({
+           chains: allowedChains,
+           options: { appName: "Streamline" }
+          }),
       ],
     }),
   );
