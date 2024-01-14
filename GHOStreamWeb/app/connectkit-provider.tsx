@@ -68,7 +68,7 @@ export const ConnectkitProvider = ({ children }: { children: React.ReactNode }) 
   
   return (
       <WagmiConfig config={config}>
-        <ConnectKitProvider>
+        <ConnectKitProvider theme="retro">
           { mounted && children }
         </ConnectKitProvider>
       </WagmiConfig>
