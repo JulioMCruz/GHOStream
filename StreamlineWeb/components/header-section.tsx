@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar } from "@/components/ui/avatar"
 import Link from "next/link";
 
-import { Sheet, SheetContent, SheetTrigger } from "../components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { Menu, Moon, Sun } from "lucide-react";
 import { useAccount } from "wagmi";
 import ConnectKitHeaderButton from "./connectkit-header-button";
