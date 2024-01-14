@@ -33,7 +33,7 @@ export default function HeaderSection() {
                       Dashboard
                       </Link>
                       <Link href="/deposit" className="block px-2 py-1 text-lg">
-                      Deposit
+                      Create Stream
                   </Link>
                 </nav>
               </SheetContent>
@@ -59,7 +59,7 @@ export default function HeaderSection() {
               </Button>
               <Button asChild variant="ghost">
                   <Link href="/deposit" className="text-sm font-medium transition-colors">
-                      Deposit
+                    Create Stream
                   </Link>
               </Button>
               </>
