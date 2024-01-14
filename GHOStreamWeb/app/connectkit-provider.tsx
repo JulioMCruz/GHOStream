@@ -58,10 +58,10 @@ export const ConnectkitProvider = ({ children }: { children: React.ReactNode }) 
           new InjectedConnector({ 
            chains: allowedChains,
           }),
-          new CoinbaseWalletConnector({
-           chains: allowedChains,
-           options: { appName: "Streamline" }
-          }),
+      // new CoinbaseWalletConnector({
+      //  chains: allowedChains,
+      //  options: { appName: "Streamline" }
+      // }),
       ],
     }),
   );
