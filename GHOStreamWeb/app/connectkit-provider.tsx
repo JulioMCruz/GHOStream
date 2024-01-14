@@ -26,46 +26,6 @@ import {
   ZeroDevConnector,
 } from '@zerodev/wagmi'
 
-const allowedChains = [sepolia]
-const options = { allowedChains, options: { projectId: process.env.NEXT_PUBLIC_ZERODEV_PROJECT_ID || "" } } 
-const config = createConfig(
-  getDefaultConfig({
-    // Required API Keys
-    alchemyId: process.env.NEXT_PUBLIC_ALCHEMY_ID, // or infuraId
-    walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "",
-
-    // Required
-    appName: "Streamline",
-
-    // Optional
-    appDescription: "Streamline",
-    // appUrl: "https://ghostream.vercel.app/",
-    // appIcon: "https://family.co/logo.png", // your app's icon, no bigger than 1024x1024px (max. 1MB)
-    chains: allowedChains,
-     connectors: [
-       new GoogleSocialWalletConnector(options),
-      //  new FacebookSocialWalletConnector(options),
-       new GithubSocialWalletConnector(options),
-       new DiscordSocialWalletConnector(options),
-       new TwitchSocialWalletConnector(options),
-       new TwitterSocialWalletConnector(options),
-       new InjectedConnector({ 
-        chains: allowedChains,
-       }),
-       new CoinbaseWalletConnector({
-        chains: allowedChains,
-        options: { appName: "Streamline" }
-       }),
-  //     new WalletConnectConnector({
-  //       chains: allowedChains,
-  //       options: {
-  //       projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "",
-  //       showQrModal: false,            
-  //      }
-  //      }),        
-   ],
-  }),
-);
 
 
 export const ConnectkitProvider = ({ children }: { children: React.ReactNode }) => {
@@ -73,15 +33,44 @@ export const ConnectkitProvider = ({ children }: { children: React.ReactNode }) 
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
+  const allowedChains = [sepolia]
+  const options = { allowedChains, options: { projectId: process.env.NEXT_PUBLIC_ZERODEV_PROJECT_ID || "" } } 
+  const config = createConfig(
+    getDefaultConfig({
+      // Required API Keys
+      alchemyId: process.env.NEXT_PUBLIC_ALCHEMY_ID, // or infuraId
+      walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "",
+  
+      // Required
+      appName: "Streamline",
+  
+      // Optional
+      appDescription: "Streamline",
+      // appUrl: "https://ghostream.vercel.app/",
+      // appIcon: "https://family.co/logo.png", // your app's icon, no bigger than 1024x1024px (max. 1MB)
+      chains: allowedChains,
+       connectors: [
+         new GoogleSocialWalletConnector(options),
+         new GithubSocialWalletConnector(options),
+         new DiscordSocialWalletConnector(options),
+         new TwitchSocialWalletConnector(options),
+         new TwitterSocialWalletConnector(options),
+         new InjectedConnector({ 
+          chains: allowedChains,
+         }),
+         new CoinbaseWalletConnector({
+          chains: allowedChains,
+          options: { appName: "Streamline" }
+         }),
+     ],
+    }),
+  );
+  
   return (
-  <>
-    { mounted && (
       <WagmiConfig config={config}>
         <ConnectKitProvider>
           { mounted && children }
         </ConnectKitProvider>
       </WagmiConfig>
-    )}
-  </>
   );
 };
