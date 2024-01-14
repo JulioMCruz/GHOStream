@@ -40,7 +40,7 @@ export default function HeaderLandingSection() {
               )
             }
             <Link href="/" className="ml-4 lg:ml-0">
-              <h1 className="text-xl font-bold">GHOStream</h1>
+              <h1 className="text-xl font-bold">Streamline</h1>
             </Link>
           </div>
 
