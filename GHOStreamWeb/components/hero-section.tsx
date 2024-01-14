@@ -7,7 +7,7 @@ export default function HeroSection() {
 
   return (
     <div className="pt-[200px] pb-[50px] flex flex-col items-center justify-center text-center px-4">
-        <h1 className="text-4xl font-bold mb-4 leading-snug">GHOStream</h1>
+        <h1 className="text-4xl font-bold mb-4 leading-snug">Streamline</h1>
       <h1 className="text-7xl font-bold mb-4 leading-snug  max-w-4xl">
       Nulla scelerisque libero sagittis velit aliquet
       </h1>
