@@ -14,8 +14,8 @@ export default function HeaderLandingSection() {
   const { isConnected } = useAccount();
 
   return (
-    <div className="px-12 py-6">
-        <div className="rounded-lg flex justify-between items-center px-6 py-4 shadow-sm border-grey border-[1px]">
+    <div className="px-1 md:px-6 lg:px-12 py-6">
+        <div className="rounded-lg flex justify-between items-center px-1 md:px-3 lg:px-6 py-4 shadow-sm border-grey border-[1px]">
 
             <div className="flex items-center">
             { isConnected && (
