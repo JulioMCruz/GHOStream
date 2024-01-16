@@ -55,7 +55,7 @@ export const ConnectkitProvider = ({ children }: { children: React.ReactNode }) 
           // new DiscordSocialWalletConnector(options),
           // new TwitchSocialWalletConnector(options),
           new TwitterSocialWalletConnector(options),
-          new GithubSocialWalletConnector(options),
+          // new GithubSocialWalletConnector(options),
           new InjectedConnector({ 
            chains: allowedChains,
           }),
