@@ -8,6 +8,7 @@ import { sepolia } from "wagmi/chains";
 import { publicProvider } from 'wagmi/providers/public';
 import { WalletConnectConnector } from "wagmi/connectors/walletConnect";
 import { CoinbaseWalletConnector } from "wagmi/connectors/coinbaseWallet";
+import { SafeConnector } from 'wagmi/connectors/safe'
 
 
 import { supportedSocialConnectors} from '@zerodev/wagmi/connectkit'
@@ -41,13 +42,13 @@ export const ConnectkitProvider = ({ children }: { children: React.ReactNode }) 
       //infuraId: process.env.NEXT_PUBLIC_INFURA_ID,
       alchemyId:  process.env.NEXT_PUBLIC_ALCHEMY_ID,
       walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "",
-  
+      
       // Required
       appName: "Streamline",
   
       // Optional
       appDescription: "Streamline",
-      appUrl: "https://streamline.vercel.app/",
+      appUrl: "https://streamlineweb.vercel.app/",
       // appIcon: "https://family.co/logo.png", // your app's icon, no bigger than 1024x1024px (max. 1MB)
       chains: allowedChains,
        connectors: [
@@ -58,18 +59,43 @@ export const ConnectkitProvider = ({ children }: { children: React.ReactNode }) 
           new TwitchSocialWalletConnector(options),
           new InjectedConnector({ 
            chains: allowedChains,
+           options: {
+            name: 'My Injected Wallet',
+            getProvider: () =>
+              typeof window !== 'undefined' ? window.ethereum : undefined,
+          },           
           }),
           new CoinbaseWalletConnector({
            chains: allowedChains,
            options: { appName: "Streamline" }
           }),
+          // new SafeConnector({
+          //   chains: allowedChains,
+          //   options: {
+          //     allowedDomains: [/gnosis-safe.io$/, /app.safe.global$/],
+          //     debug: false,
+          //   },
+          // }),
+          new WalletConnectConnector({
+            chains: allowedChains,
+            options: {
+              projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
+              showQrModal: false,
+            },
+          })
       ],
     }),
   );
   
   return (
       <WagmiConfig config={config}>
-        <ConnectKitProvider theme="retro">
+        <ConnectKitProvider 
+          theme="retro" 
+          options={{ 
+            walletConnectName: "Others",
+            disclaimer: "Here disclaimer text goes",
+            hideNoWalletCTA: true,
+          }}>
           { mounted && children }
         </ConnectKitProvider>
       </WagmiConfig>
