@@ -135,9 +135,8 @@ contract StreamLine is AutomationCompatible {
         uint256 interval,
         uint256 duaration
     );
-    event DebtInterest(uint256 indexed debtInterestInEther, uint256 indexed debtInterestUsdValue);
     event Repaid(address indexed user, uint256 indexed amount, address indexed token);
-    event Withdrawn(address indexed user, address indexed token, uint256 indexed amount);
+    event WithdraToken(address indexed user, address indexed token, uint256 indexed amount);
 
     ///////////////
     // Modifiers //
@@ -296,11 +295,14 @@ contract StreamLine is AutomationCompatible {
         if (s_userTokenDeposits[msg.sender][tokenCollateralAddress] < amountCollateral) {
             revert StreamLine__InsufficientCollateral();
         }
-        emit Withdrawn(msg.sender, tokenCollateralAddress, amountCollateral);
+
         bool success = IERC20(tokenCollateralAddress).transfer(msg.sender, amountCollateral);
         if (!success) {
             revert StreamLine__TransferFailed();
         }
+        s_userTokenDeposits[msg.sender][tokenCollateralAddress] -= amountCollateral;
+
+        emit WithdraToken(msg.sender, tokenCollateralAddress, amountCollateral);
     }
 
     //////////////////////////        ////////////////////
@@ -438,11 +440,11 @@ contract StreamLine is AutomationCompatible {
     /**
      * @notice Calculates the debt interest in Ether, considering the interest generated from a deposit and the interest to be repaid on a loan.
      * @dev This function is intended to be called externally.
-     * @param depositTokenType Type of the deposit token.
+     * @param depositTokenType Type of the deposit token (0 for DAI, 1 for LINK).
      * @param depositTokenAddress Address of the deposit token contract.
      * @param depositAmountWei Amount of the deposit in Wei.
      * @param depositPeriodDays Period of the deposit in days.
-     * @param borrowTokentype Type of the borrowed token.
+     * @param borrowTokentype Type of the borrowed token (0 for GHO, 1 for DAI, 2 for LINK).
      * @param borrowTokenAddress Address of the borrowed token contract.
      * @param borrowedAmountWei Amount borrowed in Wei.
      * @param borrowPeriodDays Period of the loan in days.
@@ -450,39 +452,37 @@ contract StreamLine is AutomationCompatible {
      */
     function calculateCollateralForDebtCoverage(
         // Asset Info
-        DepositTokenType depositTokenType,
+        DepositTokenType depositTokenType, // 0 DAI, 1 LINK
         address depositTokenAddress,
         uint256 depositAmountWei,
         uint256 depositPeriodDays,
         // Debt Info
-        BorrowTokenType borrowTokentype,
+        BorrowTokenType borrowTokentype, // 0 GHO, 1 DAI, 2 LINK
         address borrowTokenAddress,
         uint256 borrowedAmountWei,
         uint256 borrowPeriodDays
-    ) external returns (uint256 debtInterestInEther) {
+    ) external view returns (uint256 debtInterestInEther) {
+        // For example:
+        // depositInterest = 273972602739726 In Wei // 0.0002 In Ether (DAI Token)
         uint256 depositInterest = calculateDepositInterest(depositTokenType, depositAmountWei, depositPeriodDays); // In WEI
-        uint256 loanRepaymentInterest =
-            calculateLoanRepaymentInterest(borrowTokentype, borrowedAmountWei, borrowPeriodDays); // In WEI
+        // finalDebt = 7001917808219178082 In Wei // 7.001917808219178082 In Ether (GHO Token)
+        uint256 finalDebt = calculateFinalDebt(borrowTokentype, borrowedAmountWei, borrowPeriodDays); // Principal + interest In WEI
+        // depositInterestUsdValue = 268493150684931 In Wei // 0.000268493 In Ether
         uint256 depositInterestUsdValue = _getUsdValue(depositTokenAddress, depositInterest); // In WEI
-        uint256 loanRepaymentInterestUsdValue = _getUsdValue(borrowTokenAddress, loanRepaymentInterest); // In WEI
-
+        // finalDebtUsdValue = 7001917808219176000 In Wei // 7.001917808219176 In Ether
+        uint256 finalDebtUsdValue = _getUsdValue(borrowTokenAddress, finalDebt); // In WEI
+        //
         uint256 debtInterestUsdValue;
-        if (depositInterestUsdValue < loanRepaymentInterestUsdValue) {
-            debtInterestUsdValue = loanRepaymentInterestUsdValue - depositInterestUsdValue; // In WEI
+        //        7.001917808219176 <  0.000268493 In Ether
+        if (depositInterestUsdValue < finalDebtUsdValue) {
+            // 7.001649315219176 = 7.001917808219176 - 0.000268493 In Ether
+            debtInterestUsdValue = finalDebtUsdValue - depositInterestUsdValue; // In WEI
         }
-
-        // depositInterestUsdValue 200e18
-        // loanRepaymentInterestUsdValue 400e18
-        // 400e18 - 200e18 = 200e18
-
+        // perDepositTokenUsdValue = 1000000000000000000 In Wei (DAI Token)
         uint256 perDepositTokenUsdValue = _getUsdValue(depositTokenAddress, 1e18); // In WEI
-        // perDepositTokenUsdValue = 2000e18 ETH
-
+        //       7  In Ether      =     7.001649315219176e18  / 1e18 In Wei
         debtInterestInEther = (debtInterestUsdValue / perDepositTokenUsdValue); // In ETHER
-
-        // 200e18 / 2000e18 = 1e17;
-
-        emit DebtInterest(debtInterestInEther, debtInterestUsdValue);
+        //      7  In Ether, else If it can be covers debt, the return result is 0
         return debtInterestInEther; // In WEI, If it can be covers debt, the return result is 0, indicating no debt.
     }
 
@@ -562,7 +562,7 @@ contract StreamLine is AutomationCompatible {
      * @return totalDebt The total debt amount to be repaid, including principal and interest, in WEI.
      */
     function calculateFinalDebt(BorrowTokenType tokenType, uint256 borrowedAmountWei, uint256 borrowPeriodDays)
-        external
+        public
         pure
         returns (uint256)
     {
@@ -630,7 +630,7 @@ contract StreamLine is AutomationCompatible {
      * @dev This calculation is based on the USD value of the collateral and the loan-to-value ratio.
      */
 
-    function calculateMaxGhoToBorrow(
+    function calculateMaxTokenToBorrow(
         address tokenCollateralAddress,
         uint256 amountCollateral // in WEI
     ) external view returns (uint256 maxGhoToBorrow) {
