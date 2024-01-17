@@ -45,6 +45,7 @@ export const ConnectkitProvider = ({ children }: { children: React.ReactNode }) 
       
       // Required
       appName: "Streamline",
+      autoConnect: true,
   
       // Optional
       appDescription: "Streamline",
