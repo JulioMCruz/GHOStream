@@ -52,18 +52,17 @@ export const ConnectkitProvider = ({ children }: { children: React.ReactNode }) 
       chains: allowedChains,
        connectors: [
           new GoogleSocialWalletConnector(options),
-          new DiscordSocialWalletConnector(options),
-          new TwitchSocialWalletConnector(options),
           new TwitterSocialWalletConnector(options),
+          new DiscordSocialWalletConnector(options),
           new GithubSocialWalletConnector(options),
+          new TwitchSocialWalletConnector(options),
           new InjectedConnector({ 
            chains: allowedChains,
           }),
-          // new CoinbaseWalletConnector({
-          //  chains: allowedChains,
-          //  options: { appName: "Streamline" }
-          // }),
-          new ZeroDevConnector(options)
+          new CoinbaseWalletConnector({
+           chains: allowedChains,
+           options: { appName: "Streamline" }
+          }),
       ],
     }),
   );
