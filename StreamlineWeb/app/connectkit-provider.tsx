@@ -52,10 +52,10 @@ export const ConnectkitProvider = ({ children }: { children: React.ReactNode }) 
       chains: allowedChains,
        connectors: [
           new GoogleSocialWalletConnector(options),
-          // new DiscordSocialWalletConnector(options),
-          // new TwitchSocialWalletConnector(options),
+          new DiscordSocialWalletConnector(options),
+          new TwitchSocialWalletConnector(options),
           new TwitterSocialWalletConnector(options),
-          // new GithubSocialWalletConnector(options),
+          new GithubSocialWalletConnector(options),
           new InjectedConnector({ 
            chains: allowedChains,
           }),
