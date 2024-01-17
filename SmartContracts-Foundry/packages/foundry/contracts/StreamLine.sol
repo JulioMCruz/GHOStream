@@ -71,14 +71,14 @@ contract StreamLine is AutomationCompatible {
 
     /// @dev Enum to represent different token types
     enum BorrowTokenType {
-        GHO,
-        DAI,
-        LINK
+        GHO, // 0
+        DAI, // 1
+        LINK // 2
     }
 
     enum DepositTokenType {
-        DAI,
-        LINK
+        DAI, // 0
+        LINK // 1
     }
 
     /* Chianlink Data Feeds **/
@@ -463,6 +463,9 @@ contract StreamLine is AutomationCompatible {
         uint256 borrowPeriodDays
     ) external view returns (uint256 debtInterestInEther) {
         // For example:
+
+        // Deposit 10 DAI Token, Borrowed 7 GHO Token, DAI APY: 0.20%, GHO APY: 2%
+
         // depositInterest = 273972602739726 In Wei // 0.0002 In Ether (DAI Token)
         uint256 depositInterest = calculateDepositInterest(depositTokenType, depositAmountWei, depositPeriodDays); // In WEI
         // finalDebt = 7001917808219178082 In Wei // 7.001917808219178082 In Ether (GHO Token)
