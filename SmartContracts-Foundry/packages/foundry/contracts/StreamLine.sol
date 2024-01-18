@@ -448,7 +448,7 @@ contract StreamLine is AutomationCompatible {
      * @param borrowTokenAddress Address of the borrowed token contract.
      * @param borrowedAmountWei Amount borrowed in Wei.
      * @param borrowPeriodDays Period of the loan in days.
-     * @return debtInterestInEther The calculated debt interest in Ether. If the deposit yield covers the loan interest, the result is 0, indicating no debt.
+     * @return finalRepayDebt The calculated debt interest in Ether. If the deposit yield covers the loan interest, the result is 0, indicating no debt.
      */
     function calculateCollateralForDebtCoverage(
         // Asset Info
@@ -461,9 +461,8 @@ contract StreamLine is AutomationCompatible {
         address borrowTokenAddress,
         uint256 borrowedAmountWei,
         uint256 borrowPeriodDays
-    ) external view returns (uint256 debtInterestInEther) {
+    ) external view returns (uint256 finalRepayDebt) {
         // For example:
-
         // Deposit 10 DAI Token, Borrowed 7 GHO Token, DAI APY: 0.20%, GHO APY: 2%
 
         // depositInterest = 273972602739726 In Wei // 0.0002 In Ether (DAI Token)
@@ -476,7 +475,7 @@ contract StreamLine is AutomationCompatible {
         uint256 finalDebtUsdValue = _getUsdValue(borrowTokenAddress, finalDebt); // In WEI
         //
         uint256 debtInterestUsdValue;
-        //        7.001917808219176 <  0.000268493 In Ether
+        //           0.000268493    <    7.001917808219176  In Ether
         if (depositInterestUsdValue < finalDebtUsdValue) {
             // 7.001649315219176 = 7.001917808219176 - 0.000268493 In Ether
             debtInterestUsdValue = finalDebtUsdValue - depositInterestUsdValue; // In WEI
@@ -484,9 +483,9 @@ contract StreamLine is AutomationCompatible {
         // perDepositTokenUsdValue = 1000000000000000000 In Wei (DAI Token)
         uint256 perDepositTokenUsdValue = _getUsdValue(depositTokenAddress, 1e18); // In WEI
         //       7  In Ether      =     7.001649315219176e18  / 1e18 In Wei
-        debtInterestInEther = (debtInterestUsdValue / perDepositTokenUsdValue); // In ETHER
-        //      7  In Ether, else If it can be covers debt, the return result is 0
-        return debtInterestInEther; // In WEI, If it can be covers debt, the return result is 0, indicating no debt.
+        finalRepayDebt = (debtInterestUsdValue / perDepositTokenUsdValue); // In ETHER
+        //     User need repay 7 DAI Token, else If it can be covers debt, the return result is 0
+        return finalRepayDebt; // In ETHER
     }
 
     /**
