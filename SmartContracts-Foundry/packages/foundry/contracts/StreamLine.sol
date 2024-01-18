@@ -70,12 +70,6 @@ contract StreamLine is AutomationCompatible {
     }
 
     /// @dev Enum to represent different token types
-    enum BorrowTokenType {
-        GHO, // 0
-        DAI, // 1
-        LINK // 2
-    }
-
     enum DepositTokenType {
         DAI, // 0
         LINK // 1
@@ -92,10 +86,13 @@ contract StreamLine is AutomationCompatible {
 
     /* Stream Variables **/
     struct Stream {
-        uint256 orderId;
+        string name;
+        uint256 streamId;
         address receiver;
+        address streamVault;
         address asset;
-        uint256 streamAmount;
+        uint256 amount;
+        uint256 totalAmount;
         uint256 interval;
         uint256 endTime;
         uint256 lastTimeStamp;
@@ -108,13 +105,16 @@ contract StreamLine is AutomationCompatible {
     /// @dev Amount of supplied by user
     mapping(address user => mapping(address tokenCollateral => uint256 amount)) private s_userSuppliedCollateral;
     /// @dev Amount of borrowed by user
-    mapping(address user => mapping(address tokenCollateral => uint256 amount)) private s_userBorrowedAmount;
+    mapping(address user => uint256 amount) private s_userBorrowedGhoTokenAmount;
     /// @dev Mapping of user addresses to streams created by the user
     mapping(address user => mapping(uint256 streamId => Stream)) private s_userToStreams;
     /// @dev Mapping to store user deposit Period with respect to deposit Id
     mapping(address user => mapping(uint256 depositId => uint256 depositPeriod)) private s_userDepositIdToDepositPeriod;
     // Mapping from user address to depositId to UserDeposit struct
-    mapping(address => mapping(uint256 => UserDeposit)) private s_userDeposits;
+    mapping(address user => mapping(uint256 depositId => UserDeposit)) private s_userDeposits;
+    mapping(address receiver => mapping(uint256 streamId => Stream)) private s_receiverToStreams;
+    mapping(address user => uint256 nextDepositId) private s_userToDepositId;
+    mapping(address user => uint256 nextStreamId) private s_userToStreamId;
     /// @dev If we know exactly how many tokens we have, we could make this immutable
     address[] private s_collateralTokens;
 
@@ -126,7 +126,7 @@ contract StreamLine is AutomationCompatible {
         address indexed user, address indexed token, uint256 indexed amount, uint256 id, uint256 period
     );
     event Supplied(address indexed user, uint256 amount, address indexed token);
-    event Borrowed(address indexed user, uint256 indexed amount, address indexed token);
+    event Borrowed(address indexed user, uint256 indexed amount);
     event NewStream(
         uint256 indexed orderId,
         address indexed receiver,
@@ -184,7 +184,6 @@ contract StreamLine is AutomationCompatible {
     /**
      * @notice Allows a user to deposit collateral, creating a new deposit record.
      * @dev This function can only be called if the deposited amount is greater than zero and the token is allowed for collateral.
-     * @param depositId Unique identifier for the deposit.
      * @param tokenCollateralAddress Address of the collateral token.
      * @param amountCollateral Amount of collateral to be deposited, in Wei.
      * @param depositPeriodDays Period for which the collateral is deposited, in days.
@@ -192,15 +191,16 @@ contract StreamLine is AutomationCompatible {
      * @dev Throws a StreamLine__TransferFailed error if the token transfer from the user to the contract fails.
      */
     function depositCollateral(
-        uint256 depositId,
         address tokenCollateralAddress,
         uint256 amountCollateral, // In WEI
         uint256 depositPeriodDays // In Day
     ) public moreThanZero(amountCollateral) isAllowedToken(tokenCollateralAddress) {
+        uint256 currentDepositId = s_userToDepositId[msg.sender] == 0 ? 1 : s_userToDepositId[msg.sender];
+
         s_userTokenDeposits[msg.sender][tokenCollateralAddress] += amountCollateral;
-        s_userDepositIdToDepositPeriod[msg.sender][depositId] = depositPeriodDays;
-        s_userDeposits[msg.sender][depositId] = UserDeposit({
-            depositId: depositId,
+        s_userDepositIdToDepositPeriod[msg.sender][currentDepositId] = depositPeriodDays;
+        s_userDeposits[msg.sender][currentDepositId] = UserDeposit({
+            depositId: currentDepositId,
             tokenCollateralAddress: tokenCollateralAddress,
             amountCollateral: amountCollateral,
             depositPeriod: depositPeriodDays
@@ -211,8 +211,9 @@ contract StreamLine is AutomationCompatible {
         if (!success) {
             revert StreamLine__TransferFailed();
         }
+        s_userToDepositId[msg.sender] = currentDepositId + 1;
 
-        emit TokenDeposited(msg.sender, tokenCollateralAddress, amountCollateral, depositId, depositPeriodDays);
+        emit TokenDeposited(msg.sender, tokenCollateralAddress, amountCollateral, currentDepositId, depositPeriodDays);
     }
 
     /**
@@ -228,7 +229,7 @@ contract StreamLine is AutomationCompatible {
     function supplyCollateral(
         address tokenCollateralAddress,
         uint256 collateralAmount // In WEI
-    ) external moreThanZero(collateralAmount) isAllowedToken(tokenCollateralAddress) {
+    ) public moreThanZero(collateralAmount) isAllowedToken(tokenCollateralAddress) {
         if (s_userTokenDeposits[msg.sender][tokenCollateralAddress] < collateralAmount) {
             revert StreamLine__InsufficientCollateral();
         }
@@ -241,19 +242,17 @@ contract StreamLine is AutomationCompatible {
     /**
      * @notice Allows a user to borrow tokens from the Aave lending pool using supplied collateral.
      * @dev This function can only be called if the borrowed amount is greater than zero and the collateral token is allowed.
-     * @param collateralTokenAddress Address of the collateral token against which the user wants to borrow.
      * @param borrowAmount Amount of tokens to be borrowed, in Wei.
      * @dev Emits a Borrowed event with details of the user's address, borrowed amount, and collateral token.
      * @dev Calls the Aave borrow function to initiate the borrowing process, specifying a variable interest rate loan.
      * @dev Increases the user's borrowed amount for the specified collateral token.
      */
-    function borrowToken(
-        address collateralTokenAddress,
+    function borrowGhoToken(
         uint256 borrowAmount // In WEI
-    ) external moreThanZero(borrowAmount) isAllowedToken(collateralTokenAddress) {
-        i_aavePool.borrow(collateralTokenAddress, borrowAmount, 2, 0, address(this)); // 2 indicates that the loan is a variable interest rate loan
-        s_userBorrowedAmount[msg.sender][collateralTokenAddress] += borrowAmount;
-        emit Borrowed(msg.sender, borrowAmount, collateralTokenAddress);
+    ) public moreThanZero(borrowAmount) isAllowedToken(i_gho) {
+        i_aavePool.borrow(i_gho, borrowAmount, 2, 0, address(this)); // 2 indicates that the loan is a variable interest rate loan
+        s_userBorrowedGhoTokenAmount[msg.sender] += borrowAmount;
+        emit Borrowed(msg.sender, borrowAmount);
     }
 
     /**
@@ -266,7 +265,7 @@ contract StreamLine is AutomationCompatible {
      * @dev Updates the user's borrowed amount.
      * @dev Emits a 'Repaid' event for tracking purposes.
      */
-    function repayToken(
+    function repayGhoToken(
         address collateralTokenAddress,
         uint256 repayAmount // In WEI
     ) external moreThanZero(repayAmount) isAllowedToken(collateralTokenAddress) {
@@ -275,7 +274,7 @@ contract StreamLine is AutomationCompatible {
         }
         IERC20(collateralTokenAddress).approve(address(i_aavePool), repayAmount);
         i_aavePool.repay(collateralTokenAddress, repayAmount, 2, address(this));
-        s_userBorrowedAmount[msg.sender][collateralTokenAddress] -= repayAmount;
+        s_userBorrowedGhoTokenAmount[msg.sender] -= repayAmount;
         emit Repaid(msg.sender, repayAmount, collateralTokenAddress);
     }
 
@@ -309,33 +308,18 @@ contract StreamLine is AutomationCompatible {
     // Chainlink Automation //   &&   // Stream Service //
     //////////////////////////        ////////////////////
 
-    /**
-     * @notice Opens a new streaming payment arrangement between the user and a receiver using deposited or borrowed tokens.
-     * @dev This function checks if the user has sufficient token deposits or borrowed amounts to cover the total streaming amount.
-     * @param orderId Unique identifier for the stream order.
-     * @param tokenCollateralAddress Address of the deposited or borrowed token used for the stream.
-     * @param amount Initial streaming amount, in Wei.
-     * @param totalStreamAmount Total streaming amount for the entire duration, in Wei.
-     * @param receiverAddress Address of the receiver who will receive the streamed funds.
-     * @param interval Time interval between consecutive stream payments, in seconds.
-     * @param duration Total duration of the streaming arrangement, in seconds.
-     * @dev Emits a NewStream event with details of the new stream, including orderId, receiver, tokenCollateralAddress, amount, interval, and duration.
-     * @dev Creates a new Stream struct and associates it with the user and orderId.
-     * @dev Checks for validity of receiver address, positive interval, and positive duration.
-     * @dev The stream ends automatically when the duration elapses.
-     * @dev Reverts if there is insufficient token deposit or borrowed amount to cover the total streaming amount.
-     */
     function openStream(
-        uint256 orderId,
-        address tokenCollateralAddress,
+        string memory name,
+        address streamTokenAddress,
         uint256 amount, // In WEI
         uint256 totalStreamAmount, // In WEI
+        address streamVault,
         address receiverAddress,
         uint256 interval, // In Seconds
         uint256 duration // In Seconds
     ) public {
-        bool hasSufficientDeposit = s_userTokenDeposits[msg.sender][tokenCollateralAddress] >= totalStreamAmount;
-        bool hasSufficientBorrowed = s_userBorrowedAmount[msg.sender][tokenCollateralAddress] >= totalStreamAmount;
+        bool hasSufficientDeposit = s_userTokenDeposits[msg.sender][streamTokenAddress] >= totalStreamAmount;
+        bool hasSufficientBorrowed = s_userBorrowedGhoTokenAmount[msg.sender] >= totalStreamAmount;
         if (!hasSufficientDeposit && !hasSufficientBorrowed) {
             revert StreamLine__InsufficientTokenDepositForStream();
         }
@@ -350,20 +334,51 @@ contract StreamLine is AutomationCompatible {
             revert StreamLine__MustBeGreaterThanZero();
         }
 
+        uint256 currentStreamId = s_userToStreamId[msg.sender] == 0 ? 1 : s_userToStreamId[msg.sender];
+
         Stream memory newStream = Stream({
-            orderId: orderId,
+            name: name,
+            streamId: currentStreamId,
             receiver: receiverAddress,
-            asset: tokenCollateralAddress,
-            streamAmount: amount,
+            streamVault: streamVault,
+            asset: streamTokenAddress,
+            amount: amount,
+            totalAmount: totalStreamAmount,
             interval: interval,
             endTime: block.timestamp + duration,
             lastTimeStamp: block.timestamp
         });
 
-        s_userToStreams[msg.sender][newStream.orderId] = newStream;
         checkData = abi.encode(newStream);
 
-        emit NewStream(orderId, receiverAddress, tokenCollateralAddress, amount, interval, duration);
+        s_userToStreams[msg.sender][currentStreamId] = newStream;
+        s_receiverToStreams[receiverAddress][currentStreamId] = newStream;
+        s_userToStreamId[msg.sender] = currentStreamId + 1;
+
+        emit NewStream(currentStreamId, receiverAddress, streamTokenAddress, amount, interval, duration);
+    }
+
+    function depositAndOpenStream(
+        // supplyCollateral parameter
+        address tokenCollateralAddress,
+        uint256 collateralAmount, // In WEI
+        // borrowGhoToken parameter
+        uint256 borrowAmount, // In WEI
+        // openStream parameter
+        string memory name,
+        address streamTokenAddress,
+        uint256 amount, // In WEI
+        uint256 totalStreamAmount, // In WEI
+        address streamVault,
+        address receiverAddress,
+        uint256 interval, // In Seconds
+        uint256 duration // In Seconds // In WEI
+    ) public {
+        supplyCollateral(tokenCollateralAddress, collateralAmount);
+        borrowGhoToken(borrowAmount);
+        openStream(
+            name, streamTokenAddress, amount, totalStreamAmount, streamVault, receiverAddress, interval, duration
+        );
     }
 
     /**
@@ -401,7 +416,7 @@ contract StreamLine is AutomationCompatible {
 
         if (block.timestamp - stream.lastTimeStamp > stream.interval && block.timestamp < stream.endTime) {
             stream.lastTimeStamp = block.timestamp;
-            bool success = IERC20(stream.asset).transfer(stream.receiver, stream.streamAmount);
+            bool success = IERC20(stream.asset).transfer(stream.receiver, stream.amount);
             if (!success) {
                 revert StreamLine__TransferFailed();
             }
@@ -444,7 +459,6 @@ contract StreamLine is AutomationCompatible {
      * @param depositTokenAddress Address of the deposit token contract.
      * @param depositAmountWei Amount of the deposit in Wei.
      * @param depositPeriodDays Period of the deposit in days.
-     * @param borrowTokentype Type of the borrowed token (0 for GHO, 1 for DAI, 2 for LINK).
      * @param borrowTokenAddress Address of the borrowed token contract.
      * @param borrowedAmountWei Amount borrowed in Wei.
      * @param borrowPeriodDays Period of the loan in days.
@@ -457,7 +471,6 @@ contract StreamLine is AutomationCompatible {
         uint256 depositAmountWei,
         uint256 depositPeriodDays,
         // Debt Info
-        BorrowTokenType borrowTokentype, // 0 GHO, 1 DAI, 2 LINK
         address borrowTokenAddress,
         uint256 borrowedAmountWei,
         uint256 borrowPeriodDays
@@ -468,7 +481,7 @@ contract StreamLine is AutomationCompatible {
         // depositInterest = 273972602739726 In Wei // 0.0002 In Ether (DAI Token)
         uint256 depositInterest = calculateDepositInterest(depositTokenType, depositAmountWei, depositPeriodDays); // In WEI
         // finalDebt = 7001917808219178082 In Wei // 7.001917808219178082 In Ether (GHO Token)
-        uint256 finalDebt = calculateFinalDebt(borrowTokentype, borrowedAmountWei, borrowPeriodDays); // Principal + interest In WEI
+        uint256 finalDebt = calculateFinalDebt(borrowedAmountWei, borrowPeriodDays); // Principal + interest In WEI
         // depositInterestUsdValue = 268493150684931 In Wei // 0.000268493 In Ether
         uint256 depositInterestUsdValue = _getUsdValue(depositTokenAddress, depositInterest); // In WEI
         // finalDebtUsdValue = 7001917808219176000 In Wei // 7.001917808219176 In Ether
@@ -523,31 +536,17 @@ contract StreamLine is AutomationCompatible {
     /**
      * @notice Calculates the interest to be repaid on a loan based on the loan token type, borrowed amount, and period.
      * @dev The interest calculation depends on the borrowed token type, and the formula considers a predefined ratio (numerator/denominator).
-     * @param tokenType The type of borrowed token (e.g., GHO, DAI, or LINK).
      * @param borrowedAmountWei The amount borrowed in WEI.
      * @param borrowPeriodDays The duration of the loan repayment period in days.
      * @return loanRepaymentInterest The calculated interest to be repaid on the loan in WEI.
      */
-    function calculateLoanRepaymentInterest(
-        BorrowTokenType tokenType,
-        uint256 borrowedAmountWei,
-        uint256 borrowPeriodDays
-    ) public pure returns (uint256) {
-        uint256 numerator;
-        uint256 denominator;
-
-        if (tokenType == BorrowTokenType.GHO) {
-            numerator = 2;
-            denominator = 100;
-        } else if (tokenType == BorrowTokenType.DAI) {
-            numerator = 1;
-            denominator = 100;
-        } else if (tokenType == BorrowTokenType.LINK) {
-            numerator = 218;
-            denominator = 100;
-        } else {
-            revert("Invalid token type");
-        }
+    function calculateLoanRepaymentInterest(uint256 borrowedAmountWei, uint256 borrowPeriodDays)
+        public
+        pure
+        returns (uint256)
+    {
+        uint256 numerator = 2;
+        uint256 denominator = 100;
 
         uint256 maxLoanInUsd = (borrowedAmountWei * numerator) / denominator;
         uint256 loanRepaymentInterest = (maxLoanInUsd * borrowPeriodDays) / DAYS_IN_YEAR;
@@ -558,31 +557,13 @@ contract StreamLine is AutomationCompatible {
     /**
      * @notice Calculates the final debt amount to be repaid, including the borrowed principal and accrued interest.
      * @dev The calculation considers the borrowed token type, borrowed amount, and the loan repayment period.
-     * @param tokenType The type of borrowed token (e.g., GHO, DAI, or LINK).
      * @param borrowedAmountWei The amount borrowed in WEI.
      * @param borrowPeriodDays The duration of the loan repayment period in days.
      * @return totalDebt The total debt amount to be repaid, including principal and interest, in WEI.
      */
-    function calculateFinalDebt(BorrowTokenType tokenType, uint256 borrowedAmountWei, uint256 borrowPeriodDays)
-        public
-        pure
-        returns (uint256)
-    {
-        uint256 numerator;
-        uint256 denominator;
-
-        if (tokenType == BorrowTokenType.GHO) {
-            numerator = 2;
-            denominator = 100;
-        } else if (tokenType == BorrowTokenType.DAI) {
-            numerator = 1;
-            denominator = 100;
-        } else if (tokenType == BorrowTokenType.LINK) {
-            numerator = 218;
-            denominator = 100;
-        } else {
-            revert("Invalid token type");
-        }
+    function calculateFinalDebt(uint256 borrowedAmountWei, uint256 borrowPeriodDays) public pure returns (uint256) {
+        uint256 numerator = 2;
+        uint256 denominator = 100;
 
         uint256 maxLoanInUsd = (borrowedAmountWei * numerator) / denominator;
         uint256 interestAccrued = (maxLoanInUsd * borrowPeriodDays) / DAYS_IN_YEAR;
@@ -625,23 +606,16 @@ contract StreamLine is AutomationCompatible {
     }
 
     /**
-     * @notice Calculates the maximum amount of GHO that can be borrowed against a given collateral.
-     * @param tokenCollateralAddress The ERC20 token address of the collateral.
-     * @param amountCollateral The amount of the collateral (in WEI).
-     * @return maxGhoToBorrow The maximum amount of GHO that can be borrowed.
-     * @dev This calculation is based on the USD value of the collateral and the loan-to-value ratio.
+     * @notice Calculates the maximum amount of DAI collateral required to borrow a specific amount of GHO.
+     * @param borrowAmount The desired amount of GHO tokens to borrow (in WEI).
+     * @return requiredCollateral The required amount of DAI collateral in WEI.
+     * @dev This calculation is based on the desired amount of GHO, the USD value of GHO, and the loan-to-value ratio.
      */
-
-    function calculateMaxTokenToBorrow(
-        address tokenCollateralAddress,
-        uint256 amountCollateral // in WEI
-    ) external view returns (uint256 maxGhoToBorrow) {
-        uint256 collateralUsdValue = _getUsdValue(tokenCollateralAddress, amountCollateral); // 1000e18
-        uint256 maxLoanInUsd = (collateralUsdValue * NUMBERATOR) / DENOMINATOR; // Estimate LTV
-        uint256 ghoUsdValue = _getUsdValue(i_gho, 1e18); //  GHO decimals is 18 on sepolia = 1e18
-
-        maxGhoToBorrow = maxLoanInUsd / ghoUsdValue; // 1 * 1e18 / 1e18
-        return maxGhoToBorrow; // In ETHER
+    function calculateRequiredCollateralForGhoBorrow(
+        uint256 borrowAmount // in WEI
+    ) external pure returns (uint256 requiredCollateral) {
+        requiredCollateral = (borrowAmount * DENOMINATOR) / NUMBERATOR;
+        return requiredCollateral; // In WEI
     }
 
     /* Get Information Functions **/
@@ -719,8 +693,8 @@ contract StreamLine is AutomationCompatible {
         return s_userSuppliedCollateral[user][tokenCollateral]; // In WEI
     }
 
-    function getUserBorrowedAmount(address user, address tokenCollateral) external view returns (uint256) {
-        return s_userBorrowedAmount[user][tokenCollateral]; // In WEI
+    function getUserBorrowedGhoTokenAmount(address user) external view returns (uint256) {
+        return s_userBorrowedGhoTokenAmount[user]; // In WEI
     }
 
     function getDepositPeriodForUser(address user, uint256 depositId) external view returns (uint256) {
@@ -737,5 +711,28 @@ contract StreamLine is AutomationCompatible {
 
     function getLINKTokenCurrentAPR() external pure returns (uint256) {
         return LINK_CURRENT_APR; // In WEI
+    }
+
+    function getReceiverStreams(address receiver, uint256 streamId) external view returns (Stream memory) {
+        return s_receiverToStreams[receiver][streamId];
+    }
+
+    function getStreamId() external view returns (uint256) {
+        return s_userToStreamId[msg.sender];
+    }
+
+    function getDepositId() external view returns (uint256) {
+        return s_userToDepositId[msg.sender];
+    }
+
+    function getUserStreamIds(address user) external view returns (uint256[] memory) {
+        uint256 streamCount = s_userToStreamId[user];
+        uint256[] memory streamIds = new uint256[](streamCount);
+
+        for (uint256 i = 0; i < streamCount; i++) {
+            streamIds[i] = i;
+        }
+
+        return streamIds;
     }
 }
