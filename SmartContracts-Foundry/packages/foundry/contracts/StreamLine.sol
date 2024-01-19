@@ -115,14 +115,15 @@ contract StreamLine is AutomationCompatible, ReentrancyGuard {
     mapping(address user => mapping(uint256 depositId => uint256 depositPeriod)) private s_userDepositIdToDepositPeriod;
     /// @dev Mapping from user address to depositId to UserDeposit struct
     mapping(address user => mapping(uint256 depositId => UserDeposit)) private s_userDeposits;
-    /// @dev Mapping stores information about streams associated with specific receivers, allowing efficient retrieval of stream data
-    mapping(address receiver => mapping(uint256 streamId => Stream)) private s_receiverToStreams;
     /// @dev Mapping keeps track of the sequence of deposit IDs for each user, facilitating the generation of unique deposit IDs
     mapping(address user => uint256 nextDepositId) private s_userToDepositId;
     /// @dev Mapping keeps track of the sequence of stream IDs for each user, facilitating the generation of unique stream IDs
     mapping(address user => uint256 nextStreamId) private s_userToStreamId;
+    /// @dev Mapping from user addresses to the amount of tokens sent for each stream.
     mapping(address receiver => mapping(uint256 streamId => uint256 amount)) private s_receiverToReceivedAmount;
+    /// @dev Mapping from user addresses to the transaction status for each stream.
     mapping(address receiver => mapping(uint256 streamId => bool txStatus)) private s_receiverTotxStatus;
+    /// @dev Mapping from user addresses to the name associated with each stream.
     mapping(address user => mapping(uint256 streamId => string name)) private s_userToStreamName;
     /// @dev If we know exactly how many tokens we have, we could make this immutable
     address[] private s_collateralTokens;
@@ -368,7 +369,6 @@ contract StreamLine is AutomationCompatible, ReentrancyGuard {
         _sendName(name);
 
         s_userToStreams[msg.sender][currentStreamId] = newStream;
-        s_receiverToStreams[receiverAddress][currentStreamId] = newStream;
         s_userToStreamId[msg.sender] = currentStreamId + 1;
         s_userToStreamName[msg.sender][currentStreamId] = name;
         checkData = abi.encode(newStream);
@@ -765,32 +765,28 @@ contract StreamLine is AutomationCompatible, ReentrancyGuard {
         return LINK_CURRENT_APR; // In WEI
     }
 
-    function getReceiverStreams(address receiver, uint256 streamId) external view returns (Stream memory) {
-        return s_receiverToStreams[receiver][streamId];
+    function getStreamId(address user) external view returns (uint256) {
+        return s_userToStreamId[user];
     }
 
-    function getStreamId() external view returns (uint256) {
-        return s_userToStreamId[msg.sender];
+    function getDepositId(address user) external view returns (uint256) {
+        return s_userToDepositId[user];
     }
 
-    function getDepositId() external view returns (uint256) {
-        return s_userToDepositId[msg.sender];
+    function getStreamName(address user, uint256 streamId) external view returns (string memory) {
+        return s_userToStreamName[user][streamId];
     }
 
-    function getStreamName(uint256 streamId) external view returns (string memory) {
-        return s_userToStreamName[msg.sender][streamId];
+    function getStreamReceiverAddress(address user, uint256 streamId) external view returns (address) {
+        return s_userToStreams[user][streamId].receiver;
     }
 
-    function getStreamReceiverAddress(uint256 streamId) external view returns (address) {
-        return s_userToStreams[msg.sender][streamId].receiver;
+    function getStreamTotalAmount(address user, uint256 streamId) external view returns (uint256) {
+        return s_userToStreams[user][streamId].totalAmount;
     }
 
-    function getStreamTotalAmount(uint256 streamId) external view returns (uint256) {
-        return s_userToStreams[msg.sender][streamId].totalAmount;
-    }
-
-    function getStreamStartTime(uint256 streamId) external view returns (uint256) {
-        return s_userToStreams[msg.sender][streamId].startTime;
+    function getStreamStartTime(address user, uint256 streamId) external view returns (uint256) {
+        return s_userToStreams[user][streamId].startTime;
     }
 
     function getCurrentReceivedAmount(address receiver, uint256 streamId) external view returns (uint256) {
