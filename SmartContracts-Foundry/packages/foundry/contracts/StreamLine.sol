@@ -27,13 +27,15 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
 import {AutomationCompatible} from "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
 import {IERC20} from "aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol";
 import {IPool} from "aave-v3-core/contracts/interfaces/IPool.sol";
+import {StreamVaults} from "./StreamVaults.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /*
  * @title StreamLine
  * @author David Zhang
  */
 
-contract StreamLine is AutomationCompatible {
+contract StreamLine is AutomationCompatible, ReentrancyGuard {
     ////////////
     // Errors //
     ////////////
@@ -47,6 +49,7 @@ contract StreamLine is AutomationCompatible {
     error StreamLine__InvalidReceiverAddress();
     error StreamLine__MustBeGreaterThanZero();
     error StreamLine__InsufficientDepositYieldForLoanInterest();
+    error StreamLine__CallToStreamVaultsFailed();
 
     ///////////
     // Types //
@@ -56,6 +59,7 @@ contract StreamLine is AutomationCompatible {
     // State Variables //
     /////////////////////
 
+    address private immutable i_streamVaults;
     IPool private immutable i_aavePool;
     address private immutable i_gho;
     uint256 private constant DAYS_IN_YEAR = 365;
@@ -86,7 +90,6 @@ contract StreamLine is AutomationCompatible {
 
     /* Stream Variables **/
     struct Stream {
-        string name;
         uint256 streamId;
         address receiver;
         address streamVault;
@@ -95,7 +98,7 @@ contract StreamLine is AutomationCompatible {
         uint256 totalAmount;
         uint256 interval;
         uint256 endTime;
-        uint256 lastTimeStamp;
+        uint256 startTime;
     }
 
     /// @dev Mapping of token address to price feed address
@@ -110,11 +113,17 @@ contract StreamLine is AutomationCompatible {
     mapping(address user => mapping(uint256 streamId => Stream)) private s_userToStreams;
     /// @dev Mapping to store user deposit Period with respect to deposit Id
     mapping(address user => mapping(uint256 depositId => uint256 depositPeriod)) private s_userDepositIdToDepositPeriod;
-    // Mapping from user address to depositId to UserDeposit struct
+    /// @dev Mapping from user address to depositId to UserDeposit struct
     mapping(address user => mapping(uint256 depositId => UserDeposit)) private s_userDeposits;
+    /// @dev Mapping stores information about streams associated with specific receivers, allowing efficient retrieval of stream data
     mapping(address receiver => mapping(uint256 streamId => Stream)) private s_receiverToStreams;
+    /// @dev Mapping keeps track of the sequence of deposit IDs for each user, facilitating the generation of unique deposit IDs
     mapping(address user => uint256 nextDepositId) private s_userToDepositId;
+    /// @dev Mapping keeps track of the sequence of stream IDs for each user, facilitating the generation of unique stream IDs
     mapping(address user => uint256 nextStreamId) private s_userToStreamId;
+    mapping(address receiver => mapping(uint256 streamId => uint256 amount)) private s_receiverToReceivedAmount;
+    mapping(address receiver => mapping(uint256 streamId => bool txStatus)) private s_receiverTotxStatus;
+    mapping(address user => mapping(uint256 streamId => string name)) private s_userToStreamName;
     /// @dev If we know exactly how many tokens we have, we could make this immutable
     address[] private s_collateralTokens;
 
@@ -160,7 +169,13 @@ contract StreamLine is AutomationCompatible {
     // Functions //
     ///////////////
 
-    constructor(address aavePool, address gho, address[] memory tokenAddresses, address[] memory priceFeedAddresses) {
+    constructor(
+        address aavePool,
+        address gho,
+        address[] memory tokenAddresses,
+        address[] memory priceFeedAddresses,
+        address streamVaultsAddress
+    ) {
         if (tokenAddresses.length != priceFeedAddresses.length) {
             revert StreamLine__TokenAddressesAndPriceFeedAddressesAmountsDontMatch();
         }
@@ -172,23 +187,25 @@ contract StreamLine is AutomationCompatible {
         }
         i_aavePool = IPool(aavePool);
         i_gho = gho;
+        i_streamVaults = streamVaultsAddress;
     }
-    ////////////////////////
-    // External Functions //
-    ////////////////////////
+    /////////////////////////////////
+    // External / Public Functions //
+    /////////////////////////////////
 
     ///////////////////////////
     // Aave Pool Interaction //
     ///////////////////////////
 
     /**
-     * @notice Allows a user to deposit collateral, creating a new deposit record.
-     * @dev This function can only be called if the deposited amount is greater than zero and the token is allowed for collateral.
-     * @param tokenCollateralAddress Address of the collateral token.
-     * @param amountCollateral Amount of collateral to be deposited, in Wei.
-     * @param depositPeriodDays Period for which the collateral is deposited, in days.
-     * @dev Emits a TokenDeposited event with details of the deposited collateral, including the user's address, collateral token, amount, deposit ID, and deposit period.
-     * @dev Throws a StreamLine__TransferFailed error if the token transfer from the user to the contract fails.
+     * @notice Facilitates the deposit of collateral by a user into the contract.
+     * @dev This function allows a user to deposit a specified amount of collateral for a defined deposit period.
+     * @param tokenCollateralAddress The address of the collateral token to be deposited.
+     * @param amountCollateral The amount of collateral to be deposited, in WEI.
+     * @param depositPeriodDays The duration of the deposit period in days.
+     * @dev The function performs various tasks, including updating user-specific deposit records, transferring collateral from the user,
+     * and emitting an event to signal the successful deposit.
+     * @dev The function also incorporates modifiers, ensuring the amount of collateral is greater than zero and that the collateral token is allowed.
      */
     function depositCollateral(
         address tokenCollateralAddress,
@@ -290,7 +307,7 @@ contract StreamLine is AutomationCompatible {
     function withdrawToken(
         address tokenCollateralAddress,
         uint256 amountCollateral // In WEI
-    ) external moreThanZero(amountCollateral) isAllowedToken(tokenCollateralAddress) {
+    ) external moreThanZero(amountCollateral) isAllowedToken(tokenCollateralAddress) nonReentrant {
         if (s_userTokenDeposits[msg.sender][tokenCollateralAddress] < amountCollateral) {
             revert StreamLine__InsufficientCollateral();
         }
@@ -309,7 +326,7 @@ contract StreamLine is AutomationCompatible {
     //////////////////////////        ////////////////////
 
     function openStream(
-        string memory name,
+        string calldata name,
         address streamTokenAddress,
         uint256 amount, // In WEI
         uint256 totalStreamAmount, // In WEI
@@ -337,7 +354,6 @@ contract StreamLine is AutomationCompatible {
         uint256 currentStreamId = s_userToStreamId[msg.sender] == 0 ? 1 : s_userToStreamId[msg.sender];
 
         Stream memory newStream = Stream({
-            name: name,
             streamId: currentStreamId,
             receiver: receiverAddress,
             streamVault: streamVault,
@@ -346,18 +362,41 @@ contract StreamLine is AutomationCompatible {
             totalAmount: totalStreamAmount,
             interval: interval,
             endTime: block.timestamp + duration,
-            lastTimeStamp: block.timestamp
+            startTime: block.timestamp
         });
 
-        checkData = abi.encode(newStream);
+        _sendName(name);
 
         s_userToStreams[msg.sender][currentStreamId] = newStream;
         s_receiverToStreams[receiverAddress][currentStreamId] = newStream;
         s_userToStreamId[msg.sender] = currentStreamId + 1;
+        s_userToStreamName[msg.sender][currentStreamId] = name;
+        checkData = abi.encode(newStream);
+
+        (bool success,) = address(i_streamVaults).call(abi.encodeWithSignature("getStreamData(bytes)", checkData));
+        if (!success) {
+            revert StreamLine__CallToStreamVaultsFailed();
+        }
 
         emit NewStream(currentStreamId, receiverAddress, streamTokenAddress, amount, interval, duration);
     }
 
+    /**
+     * @notice Executes a deposit and opens a token stream in a single transaction.
+     * @dev This function combines three separate actions: supplying collateral, borrowing GHO tokens, and opening a token stream.
+     * @param tokenCollateralAddress The address of the collateral token.
+     * @param collateralAmount The amount of collateral to be supplied, in WEI.
+     * @param borrowAmount The amount of GHO tokens to be borrowed, in WEI.
+     * @param name The name of the token stream.
+     * @param streamTokenAddress The address of the token used for the stream.
+     * @param amount The amount of tokens to be streamed in each interval, in WEI.
+     * @param totalStreamAmount The total amount of tokens to be streamed, in WEI.
+     * @param streamVault The address of the vault managing the token stream.
+     * @param receiverAddress The address of the receiver for the token stream.
+     * @param interval The time interval between each stream payment, in seconds.
+     * @param duration The duration of the token stream, in seconds.
+     * @dev The function calls the supplyCollateral, borrowGhoToken, and openStream functions internally.
+     */
     function depositAndOpenStream(
         // supplyCollateral parameter
         address tokenCollateralAddress,
@@ -365,7 +404,7 @@ contract StreamLine is AutomationCompatible {
         // borrowGhoToken parameter
         uint256 borrowAmount, // In WEI
         // openStream parameter
-        string memory name,
+        string calldata name,
         address streamTokenAddress,
         uint256 amount, // In WEI
         uint256 totalStreamAmount, // In WEI
@@ -397,7 +436,7 @@ contract StreamLine is AutomationCompatible {
     {
         Stream memory stream = abi.decode(checkData, (Stream));
         bool isStreamActive = block.timestamp < stream.endTime;
-        bool timePassed = (block.timestamp - stream.lastTimeStamp) > stream.interval;
+        bool timePassed = (block.timestamp - stream.startTime) > stream.interval;
 
         upkeepNeeded = isStreamActive && timePassed;
         performData = checkData;
@@ -414,13 +453,16 @@ contract StreamLine is AutomationCompatible {
     function performUpkeep(bytes calldata performData) external override {
         Stream memory stream = abi.decode(performData, (Stream));
 
-        if (block.timestamp - stream.lastTimeStamp > stream.interval && block.timestamp < stream.endTime) {
-            stream.lastTimeStamp = block.timestamp;
-            bool success = IERC20(stream.asset).transfer(stream.receiver, stream.amount);
+        if (block.timestamp - stream.startTime > stream.interval && block.timestamp < stream.endTime) {
+            stream.startTime = block.timestamp;
+            bool success = IERC20(stream.asset).transfer(stream.streamVault, stream.amount);
             if (!success) {
                 revert StreamLine__TransferFailed();
             }
         }
+
+        s_receiverToReceivedAmount[stream.receiver][stream.streamId] += stream.amount;
+        s_receiverTotxStatus[stream.receiver][stream.streamId] = true;
     }
 
     //////////////////////////////////////////////
@@ -444,6 +486,15 @@ contract StreamLine is AutomationCompatible {
         // We want to have everything in terms of WEI, so we add 10 zeros at the end
         // (1000e8 * 1e10) * 1e18 / 1e18 = 1000e18;
         return (uint256(price) * ADDITIONAL_FEED_PRECISION) * amount / PRECISION; // In WEI
+    }
+
+    function _sendName(string memory name) internal {
+        bytes memory nameAsBytes = abi.encode(name);
+
+        (bool success,) = address(i_streamVaults).call(abi.encodeWithSignature("getStreamNameData(bytes)", nameAsBytes));
+        if (!success) {
+            revert StreamLine__CallToStreamVaultsFailed();
+        }
     }
 
     //////////////////////////////////////////////
@@ -606,10 +657,11 @@ contract StreamLine is AutomationCompatible {
     }
 
     /**
-     * @notice Calculates the maximum amount of DAI collateral required to borrow a specific amount of GHO.
-     * @param borrowAmount The desired amount of GHO tokens to borrow (in WEI).
-     * @return requiredCollateral The required amount of DAI collateral in WEI.
-     * @dev This calculation is based on the desired amount of GHO, the USD value of GHO, and the loan-to-value ratio.
+     * @notice Calculates the required collateral amount for borrowing a specified quantity of GHO tokens.
+     * @dev This function determines the collateral amount needed based on the provided borrowAmount, applying a loan-to-value ratio.
+     * @param borrowAmount The amount of GHO tokens to be borrowed, in WEI.
+     * @return requiredCollateral The calculated collateral amount required to secure the specified GHO borrow amount, in WEI.
+     * @dev The calculation is performed using a predefined loan-to-value ratio, where the collateral is a percentage of the borrowed amount.
      */
     function calculateRequiredCollateralForGhoBorrow(
         uint256 borrowAmount // in WEI
@@ -648,6 +700,10 @@ contract StreamLine is AutomationCompatible {
             (totalCollateralBase, totalDebtBase, availableBorrowsBase, currentLiquidationThreshold, ltv, healthFactor);
     }
 
+    ////////////////////////////////////////
+    // Getter Public / External Functions //
+    ////////////////////////////////////////
+
     /**
      * @notice Retrieves the information of a specific stream created by the user.
      * @param streamId The unique identifier of the stream.
@@ -656,10 +712,6 @@ contract StreamLine is AutomationCompatible {
     function getUserStreamInfo(address user, uint256 streamId) external view returns (Stream memory) {
         return s_userToStreams[user][streamId];
     }
-
-    ////////////////////////////////////////
-    // Getter Public / External Functions //
-    ////////////////////////////////////////
 
     function getPoolAddress() external view returns (IPool) {
         return i_aavePool;
@@ -725,6 +777,39 @@ contract StreamLine is AutomationCompatible {
         return s_userToDepositId[msg.sender];
     }
 
+    function getStreamName(uint256 streamId) external view returns (string memory) {
+        return s_userToStreamName[msg.sender][streamId];
+    }
+
+    function getStreamReceiverAddress(uint256 streamId) external view returns (address) {
+        return s_userToStreams[msg.sender][streamId].receiver;
+    }
+
+    function getStreamTotalAmount(uint256 streamId) external view returns (uint256) {
+        return s_userToStreams[msg.sender][streamId].totalAmount;
+    }
+
+    function getStreamStartTime(uint256 streamId) external view returns (uint256) {
+        return s_userToStreams[msg.sender][streamId].startTime;
+    }
+
+    function getCurrentReceivedAmount(address receiver, uint256 streamId) external view returns (uint256) {
+        return s_receiverToReceivedAmount[receiver][streamId];
+    }
+
+    function getTransactionStatus(address receiver, uint256 streamId) external view returns (bool) {
+        return s_receiverTotxStatus[receiver][streamId];
+    }
+
+    /**
+     * ß
+     * @notice Retrieves an array of stream IDs associated with a specific user.
+     * @dev This function returns an array containing the unique stream IDs for a given user.
+     * @param user The address of the user for whom to retrieve stream IDs.
+     * @return streamIds An array of stream IDs associated with the specified user.
+     * @dev The function queries the internal mapping to determine the number of streams associated with the user,
+     * and then populates an array with the corresponding stream IDs. The resulting array is then returned.
+     */
     function getUserStreamIds(address user) external view returns (uint256[] memory) {
         uint256 streamCount = s_userToStreamId[user];
         uint256[] memory streamIds = new uint256[](streamCount);
