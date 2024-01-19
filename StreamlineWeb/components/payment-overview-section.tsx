@@ -1,20 +1,22 @@
 import { Button } from "@/components/ui/button"
-import { Tabs } from "@/components/ui/tabs"
 import { TableHead, TableRow, TableHeader, TableCell, TableBody, Table } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { JSX, SVGProps } from "react"
 import Link from "next/link"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function PaymentsOverviewSection() {
   return (
     <div className="flex flex-col p-6">
       <h1 className="text-4xl font-bold mb-6">Payments overview</h1>
       <Tabs className="mb-4">
-        <Button className="mr-2" variant="outline">
-          Streaming Payments
-        </Button>
-        <Button variant="outline">Deposit Positions</Button>
-      </Tabs>
+        
+    
+      <TabsList>
+    <TabsTrigger value="account">Streaming Payments</TabsTrigger>
+    <TabsTrigger value="password">Deposit Positions</TabsTrigger>
+  </TabsList>
+  </Tabs>
       <div className="flex justify-between items-center mb-4">
         <Tabs>
           <Button className="mr-2" variant="secondary">
@@ -37,12 +39,12 @@ export default function PaymentsOverviewSection() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-left">STREAM NAME</TableHead>
-              <TableHead className="text-left">RECEIVER ADDRESS</TableHead>
-              <TableHead className="text-left">STATUS</TableHead>
-              <TableHead className="text-left">AMOUNT</TableHead>
-              <TableHead className="text-left">CURRENT STREAM</TableHead>
-              <TableHead className="text-left">CREATION PERIOD</TableHead>
+              <TableHead className="text-left">Stream Name</TableHead>
+              <TableHead className="text-left">Reciever Address</TableHead>
+              <TableHead className="text-left">Status</TableHead>
+              <TableHead className="text-left">Amount</TableHead>
+              <TableHead className="text-left">Current Stream</TableHead>
+              <TableHead className="text-left">Creation Period</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -50,9 +52,12 @@ export default function PaymentsOverviewSection() {
               <TableCell>Landing page Freelance</TableCell>
               <TableCell>06c1774-7f3d-46ad...90a8</TableCell>
               <TableCell>
-                <Badge variant="secondary">Succeeded</Badge>
+                <Badge variant="destructive">Succeeded</Badge>
               </TableCell>
-              <TableCell>6737.98</TableCell>
+              <TableCell>
+              <CurrencyIcon className="inline-block mr-2" />
+              6737.98
+              </TableCell>
               <TableCell>
                 <CurrencyIcon className="inline-block mr-2" />
                 2000/6737.98
