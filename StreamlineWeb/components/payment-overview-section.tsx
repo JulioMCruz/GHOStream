@@ -3,6 +3,7 @@ import { Tabs } from "@/components/ui/tabs"
 import { TableHead, TableRow, TableHeader, TableCell, TableBody, Table } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { JSX, SVGProps } from "react"
+import Link from "next/link"
 
 export default function PaymentsOverviewSection() {
   return (
@@ -24,7 +25,13 @@ export default function PaymentsOverviewSection() {
           </Button>
           <Button variant="outline">Failed</Button>
         </Tabs>
-        <Button>Create Stream</Button>
+        {/* <Button>Create Stream</Button> */}
+        <Link
+          className="inline-flex h-10 items-center justify-center rounded-md px-8 border border-black border-2 shadow-left-bottom"
+          href="/deposit"
+          >
+          Create Stream
+        </Link>        
       </div>
       <div className="overflow-x-auto">
         <Table>
