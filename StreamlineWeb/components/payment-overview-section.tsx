@@ -9,14 +9,12 @@ export default function PaymentsOverviewSection() {
   return (
     <div className="flex flex-col p-6">
       <h1 className="text-4xl font-bold mb-6">Payments overview</h1>
-      <Tabs className="mb-4">
-        
-    
-      <TabsList>
-    <TabsTrigger value="account">Streaming Payments</TabsTrigger>
-    <TabsTrigger value="password">Deposit Positions</TabsTrigger>
-  </TabsList>
-  </Tabs>
+      <Tabs defaultValue="account" className="w-[400px]">
+        <TabsList>
+          <TabsTrigger value="account">Streaming Payments</TabsTrigger>
+          <TabsTrigger value="password">Deposit Positions</TabsTrigger>
+        </TabsList>
+      </Tabs>
       <div className="flex justify-between items-center mb-4">
         <Tabs>
           <Button className="mr-2" variant="secondary">
