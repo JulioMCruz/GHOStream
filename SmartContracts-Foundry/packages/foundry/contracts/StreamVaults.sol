@@ -74,11 +74,15 @@ contract StreamVaults is ReentrancyGuard {
         LINK
     }
 
+    /// @dev Mapping from receiver addresses to the details of each stream.
     mapping(address receiver => mapping(uint256 streamId => Stream)) private s_receiverToStreams;
+    /// @dev Mapping from receiver addresses to the latest stream ID created.
     mapping(address receiver => uint256 streamId) private s_receiverToStreamId;
+    /// @dev Mapping from receiver addresses to the name associated with each stream.
     mapping(address receiver => mapping(uint256 streamId => string name)) private s_receiverToStreamName;
+    /// @dev Mapping from receiver addresses to the balance associated with each stream.
     mapping(address receiver => mapping(uint256 streamId => uint256 amount)) private s_receiverToBalance;
-    mapping(address receiver => mapping(uint256 streamId => uint256 amount)) private s_receiverToReceivedAmount;
+    /// @dev Mapping from receiver addresses to the transaction status for each stream.
     mapping(address receiver => mapping(uint256 streamId => bool txStatus)) private s_receiverTotxStatus;
 
     ////////////
@@ -143,6 +147,7 @@ contract StreamVaults is ReentrancyGuard {
         s_receiverToStreamId[streamData.receiver] = streamData.streamId;
         s_receiverToStreamName[streamData.receiver][streamData.streamId] = streamName;
         s_receiverToBalance[streamData.receiver][streamData.streamId] += streamData.amount;
+        s_receiverTotxStatus[streamData.receiver][streamData.streamId] = true;
     }
 
     /**
@@ -190,10 +195,6 @@ contract StreamVaults is ReentrancyGuard {
         return s_receiverToStreams[receiver][streamId];
     }
 
-    function getStreamtotalAmount(address receiver, uint256 streamId) external view returns (uint256) {
-        return s_receiverToStreams[receiver][streamId].totalAmount;
-    }
-
     function getStreamAmount(address receiver, uint256 streamId) external view returns (uint256) {
         return s_receiverToStreams[receiver][streamId].amount;
     }
@@ -204,10 +205,6 @@ contract StreamVaults is ReentrancyGuard {
 
     function getStreamEndTime(address receiver, uint256 streamId) external view returns (uint256) {
         return s_receiverToStreams[receiver][streamId].endTime;
-    }
-
-    function getStreamName(address receiver, uint256 streamId) external view returns (string memory) {
-        return s_receiverToStreamName[receiver][streamId];
     }
 
     function getStreamAsset(address receiver, uint256 streamId) external view returns (address) {
@@ -242,24 +239,20 @@ contract StreamVaults is ReentrancyGuard {
         return streamIds;
     }
 
-    function getStreamName(uint256 streamId) external view returns (string memory) {
-        return s_receiverToStreamName[msg.sender][streamId];
+    function getStreamName(address receiver, uint256 streamId) external view returns (string memory) {
+        return s_receiverToStreamName[receiver][streamId];
     }
 
-    function getStreamReceiverAddress(uint256 streamId) external view returns (address) {
-        return s_receiverToStreams[msg.sender][streamId].receiver;
+    function getStreamReceiverAddress(address receiver, uint256 streamId) external view returns (address) {
+        return s_receiverToStreams[receiver][streamId].receiver;
     }
 
-    function getStreamTotalAmount(uint256 streamId) external view returns (uint256) {
-        return s_receiverToStreams[msg.sender][streamId].totalAmount;
+    function getStreamTotalAmount(address receiver, uint256 streamId) external view returns (uint256) {
+        return s_receiverToStreams[receiver][streamId].totalAmount;
     }
 
-    function getStreamStartTime(uint256 streamId) external view returns (uint256) {
-        return s_receiverToStreams[msg.sender][streamId].startTime;
-    }
-
-    function getCurrentReceivedAmount(address receiver, uint256 streamId) external view returns (uint256) {
-        return s_receiverToReceivedAmount[receiver][streamId];
+    function getStreamStartTime(address receiver, uint256 streamId) external view returns (uint256) {
+        return s_receiverToStreams[receiver][streamId].startTime;
     }
 
     function getTransactionStatus(address receiver, uint256 streamId) external view returns (bool) {
