@@ -25,7 +25,7 @@ export default function AccountInformation() {
   return (
       <section className="max-w-8xl mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold">Overview</h2>
+        <h2 className="text-2xl font-bold mb-6">Overview</h2>
         <Button className="p-2 bg-transparent hover:bg-gray-100 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           onClick={() => userDataRefetch()}>
           <RefreshCwIcon className="text-gray-600" />
