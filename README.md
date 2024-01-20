@@ -10,3 +10,8 @@
 ### LiquidityPool Address: 0xc01cC5Ad3C89e26301bB2cfce87a515A6e80DBb5
 ### LiquidityPool Address: https://mumbai.polygonscan.com/address/0xc01cc5ad3c89e26301bb2cfce87a515a6e80dbb5#code
 
+### StreamLine Video:  https://www.youtube.com/watch?v=mJaIkzzZW-Y
+
+### StreamVaults and Cross Chain Video:  https://www.youtube.com/watch?v=9tGVE-GPPxE
+
+
