@@ -19,8 +19,10 @@ LiquidityPool Deploy On Polygon Mumbai: https://mumbai.polygonscan.com/address/0
 #### StreamVaults and Cross Chain Video:  https://www.youtube.com/watch?v=9tGVE-GPPxE
 
 ### Check Status on Chainlink 
-#### Chainlink Automation Status: https://automation.chain.link/sepolia/88520497691709347783514887032752104320864026698858233368798223558543343212584
-#### Cross Chain Status: https://ccip.chain.link/msg/0x1a8c8cf4eb671e663e76e54383cafba8d90627d06e505f822a692c9ea5790bcc
+#### Chainlink Automation Status: 
+https://automation.chain.link/sepolia/88520497691709347783514887032752104320864026698858233368798223558543343212584
+#### Cross Chain Status: 
+https://ccip.chain.link/msg/0x1a8c8cf4eb671e663e76e54383cafba8d90627d06e505f822a692c9ea5790bcc
 
 
 <img width="1432" alt="image" src="https://github.com/gfkacid/Streamline/assets/125990317/74e8636b-ed21-48e1-83a9-45b9f374969f">
