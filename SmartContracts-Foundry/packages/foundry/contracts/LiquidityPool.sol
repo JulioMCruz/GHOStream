@@ -12,36 +12,57 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * @dev The withdrawToken function is called by DestChainReceiver to transfer ERC20 to the cross-chain applicant
  */
 contract LiquidityPool is ReentrancyGuard, Ownable {
-    /* Type declarations */
-    IERC20 private immutable i_token;
+    ////////////
+    // Errors //
+    ////////////
 
-    /* State variables */
-    mapping(address => uint256) private balances;
-
-    /* Events */
-    event LiquidityPool__Deposited(address indexed sender, uint256 indexed amount);
-    event LiquidityPool__WithdrawToken(address indexed to, uint256 indexed amount);
-
-    /* Errors */
     error LiquidityPool__TransferFailed();
     error LiquidityPool__NeedSendMore();
     error LiquidityPool__InsufficientBalance();
+
+    /////////////////////
+    // State Variables //
+    /////////////////////
+
+    IERC20 private immutable i_token;
+
+    mapping(address => uint256) private balances;
+
+    ////////////
+    // Events //
+    ////////////
+
+    event LiquidityPool__Deposited(address indexed sender, uint256 indexed amount);
+    event LiquidityPool__WithdrawToken(address indexed to, uint256 indexed amount);
+
+    ///////////////
+    // Modifiers //
+    ///////////////
+
+    modifier moreThanZero(uint256 amount) {
+        if (amount == 0) {
+            revert LiquidityPool__NeedSendMore();
+        }
+        _;
+    }
+    ///////////////
+    // Functions //
+    ///////////////
 
     constructor(address tokenAddress) Ownable(msg.sender) {
         i_token = IERC20(tokenAddress);
     }
 
-    /* External / Public Functions */
+    /////////////////////////////////
+    // External / Public Functions //
+    /////////////////////////////////
 
     /**
      * @dev This function is used to deposit ERC20 tokens into the project direction liquidity pool for cross-chain users to withdraw.
      * The project party deposits various ERC20 tokens for the contract, such as: USDT, USDC, DAI, LINK, WETH, WBTC.
      */
-    function depositToken(uint256 amount) public {
-        if (amount == 0) {
-            revert LiquidityPool__NeedSendMore();
-        }
-        // first need Approve in frontend or etherscan sepolia
+    function depositToken(uint256 amount) public moreThanZero(amount) {
+        // first need Approve in frontend or polygonscan mumbai
         bool success = i_token.transferFrom(msg.sender, address(this), amount);
         if (!success) {
             revert LiquidityPool__TransferFailed();
@@ -62,11 +83,17 @@ contract LiquidityPool is ReentrancyGuard, Ownable {
         if (i_token.balanceOf(address(this)) < amount) {
             revert LiquidityPool__InsufficientBalance();
         }
-        i_token.transfer(to, amount);
+        (bool success) = i_token.transfer(to, amount);
+        if (!success) {
+            revert LiquidityPool__TransferFailed();
+        }
         emit LiquidityPool__WithdrawToken(to, amount);
     }
 
-    /* Getter Functions */
+    ////////////////////////////////////////
+    // Getter Public / External Functions //
+    ////////////////////////////////////////
+
     function getPoolBalance() external view returns (uint256) {
         return i_token.balanceOf(address(this));
     }
@@ -78,6 +105,10 @@ contract LiquidityPool is ReentrancyGuard, Ownable {
     function getTokenAddress() public view returns (address) {
         return address(i_token);
     }
+
+    /////////////////////////////////
+    // fallback / receive Function //
+    /////////////////////////////////
 
     fallback() external payable {}
     receive() external payable {}
