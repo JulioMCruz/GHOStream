@@ -4,10 +4,7 @@ import React from 'react'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 
-import { createPublicClient, createWalletClient, custom, http } from 'viem'
-import { sepolia } from 'viem/chains'
-import { wagmiAbi } from '../abi/abi'
-import { sep } from 'path'
+import { StreamLineAbi } from '../abi/stream-line-abi'
 import { useAccount } from 'wagmi'
 import { useContractRead } from "wagmi";
 
@@ -17,7 +14,7 @@ export default function AccountInformation() {
 
   const { data: userData, refetch: userDataRefetch } = useContractRead({
     address: process.env.NEXT_PUBLIC_STREAMLINE_CONTRACT_ADDRESS_SEPOLIA as `0x${string}`,
-    abi: wagmiAbi,
+    abi: StreamLineAbi,
     functionName: 'getAccountInformation',
     args: [address as `0x${string}`],
   });
