@@ -1,4 +1,4 @@
-export const wagmiAbi = [
+export const StreamLineAbi = [
   {
     inputs: [
       { internalType: "address", name: "aavePool", type: "address" },
@@ -9,11 +9,14 @@ export const wagmiAbi = [
         name: "priceFeedAddresses",
         type: "address[]",
       },
+      { internalType: "address", name: "streamVaultsAddress", type: "address" },
     ],
     stateMutability: "nonpayable",
     type: "constructor",
   },
   { inputs: [], name: "OnlySimulatedBackend", type: "error" },
+  { inputs: [], name: "ReentrancyGuardReentrantCall", type: "error" },
+  { inputs: [], name: "StreamLine__CallToStreamVaultsFailed", type: "error" },
   { inputs: [], name: "StreamLine__InsufficientCollateral", type: "error" },
   {
     inputs: [],
@@ -48,12 +51,6 @@ export const wagmiAbi = [
         internalType: "uint256",
         name: "amount",
         type: "uint256",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "token",
-        type: "address",
       },
     ],
     name: "Borrowed",
@@ -191,14 +188,9 @@ export const wagmiAbi = [
   },
   {
     inputs: [
-      {
-        internalType: "address",
-        name: "collateralTokenAddress",
-        type: "address",
-      },
       { internalType: "uint256", name: "borrowAmount", type: "uint256" },
     ],
-    name: "borrowToken",
+    name: "borrowGhoToken",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -213,18 +205,13 @@ export const wagmiAbi = [
       { internalType: "address", name: "depositTokenAddress", type: "address" },
       { internalType: "uint256", name: "depositAmountWei", type: "uint256" },
       { internalType: "uint256", name: "depositPeriodDays", type: "uint256" },
-      {
-        internalType: "enum StreamLine.BorrowTokenType",
-        name: "borrowTokentype",
-        type: "uint8",
-      },
       { internalType: "address", name: "borrowTokenAddress", type: "address" },
       { internalType: "uint256", name: "borrowedAmountWei", type: "uint256" },
       { internalType: "uint256", name: "borrowPeriodDays", type: "uint256" },
     ],
     name: "calculateCollateralForDebtCoverage",
     outputs: [
-      { internalType: "uint256", name: "debtInterestInEther", type: "uint256" },
+      { internalType: "uint256", name: "finalRepayDebt", type: "uint256" },
     ],
     stateMutability: "view",
     type: "function",
@@ -261,11 +248,6 @@ export const wagmiAbi = [
   },
   {
     inputs: [
-      {
-        internalType: "enum StreamLine.BorrowTokenType",
-        name: "tokenType",
-        type: "uint8",
-      },
       { internalType: "uint256", name: "borrowedAmountWei", type: "uint256" },
       { internalType: "uint256", name: "borrowPeriodDays", type: "uint256" },
     ],
@@ -276,11 +258,6 @@ export const wagmiAbi = [
   },
   {
     inputs: [
-      {
-        internalType: "enum StreamLine.BorrowTokenType",
-        name: "tokenType",
-        type: "uint8",
-      },
       { internalType: "uint256", name: "borrowedAmountWei", type: "uint256" },
       { internalType: "uint256", name: "borrowPeriodDays", type: "uint256" },
     ],
@@ -291,18 +268,13 @@ export const wagmiAbi = [
   },
   {
     inputs: [
-      {
-        internalType: "address",
-        name: "tokenCollateralAddress",
-        type: "address",
-      },
-      { internalType: "uint256", name: "amountCollateral", type: "uint256" },
+      { internalType: "uint256", name: "borrowAmount", type: "uint256" },
     ],
-    name: "calculateMaxTokenToBorrow",
+    name: "calculateRequiredCollateralForGhoBorrow",
     outputs: [
-      { internalType: "uint256", name: "maxGhoToBorrow", type: "uint256" },
+      { internalType: "uint256", name: "requiredCollateral", type: "uint256" },
     ],
-    stateMutability: "view",
+    stateMutability: "pure",
     type: "function",
   },
   {
@@ -317,7 +289,29 @@ export const wagmiAbi = [
   },
   {
     inputs: [
-      { internalType: "uint256", name: "depositId", type: "uint256" },
+      {
+        internalType: "address",
+        name: "tokenCollateralAddress",
+        type: "address",
+      },
+      { internalType: "uint256", name: "collateralAmount", type: "uint256" },
+      { internalType: "uint256", name: "borrowAmount", type: "uint256" },
+      { internalType: "string", name: "name", type: "string" },
+      { internalType: "address", name: "streamTokenAddress", type: "address" },
+      { internalType: "uint256", name: "amount", type: "uint256" },
+      { internalType: "uint256", name: "totalStreamAmount", type: "uint256" },
+      { internalType: "address", name: "streamVault", type: "address" },
+      { internalType: "address", name: "receiverAddress", type: "address" },
+      { internalType: "uint256", name: "interval", type: "uint256" },
+      { internalType: "uint256", name: "duration", type: "uint256" },
+    ],
+    name: "depositAndOpenStream",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
       {
         internalType: "address",
         name: "tokenCollateralAddress",
@@ -375,10 +369,27 @@ export const wagmiAbi = [
     type: "function",
   },
   {
+    inputs: [
+      { internalType: "address", name: "receiver", type: "address" },
+      { internalType: "uint256", name: "streamId", type: "uint256" },
+    ],
+    name: "getCurrentReceivedAmount",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [],
     name: "getDAITokenCurrentAPR",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "pure",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "user", type: "address" }],
+    name: "getDepositId",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
     type: "function",
   },
   {
@@ -420,11 +431,65 @@ export const wagmiAbi = [
     type: "function",
   },
   {
+    inputs: [{ internalType: "address", name: "user", type: "address" }],
+    name: "getStreamId",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       { internalType: "address", name: "user", type: "address" },
-      { internalType: "address", name: "tokenCollateral", type: "address" },
+      { internalType: "uint256", name: "streamId", type: "uint256" },
     ],
-    name: "getUserBorrowedAmount",
+    name: "getStreamName",
+    outputs: [{ internalType: "string", name: "", type: "string" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "address", name: "user", type: "address" },
+      { internalType: "uint256", name: "streamId", type: "uint256" },
+    ],
+    name: "getStreamReceiverAddress",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "address", name: "user", type: "address" },
+      { internalType: "uint256", name: "streamId", type: "uint256" },
+    ],
+    name: "getStreamStartTime",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "address", name: "user", type: "address" },
+      { internalType: "uint256", name: "streamId", type: "uint256" },
+    ],
+    name: "getStreamTotalAmount",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "address", name: "receiver", type: "address" },
+      { internalType: "uint256", name: "streamId", type: "uint256" },
+    ],
+    name: "getTransactionStatus",
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "user", type: "address" }],
+    name: "getUserBorrowedGhoTokenAmount",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
@@ -470,6 +535,13 @@ export const wagmiAbi = [
     type: "function",
   },
   {
+    inputs: [{ internalType: "address", name: "user", type: "address" }],
+    name: "getUserStreamIds",
+    outputs: [{ internalType: "uint256[]", name: "", type: "uint256[]" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       { internalType: "address", name: "user", type: "address" },
       { internalType: "uint256", name: "streamId", type: "uint256" },
@@ -478,13 +550,15 @@ export const wagmiAbi = [
     outputs: [
       {
         components: [
-          { internalType: "uint256", name: "orderId", type: "uint256" },
+          { internalType: "uint256", name: "streamId", type: "uint256" },
           { internalType: "address", name: "receiver", type: "address" },
+          { internalType: "address", name: "streamVault", type: "address" },
           { internalType: "address", name: "asset", type: "address" },
-          { internalType: "uint256", name: "streamAmount", type: "uint256" },
+          { internalType: "uint256", name: "amount", type: "uint256" },
+          { internalType: "uint256", name: "totalAmount", type: "uint256" },
           { internalType: "uint256", name: "interval", type: "uint256" },
           { internalType: "uint256", name: "endTime", type: "uint256" },
-          { internalType: "uint256", name: "lastTimeStamp", type: "uint256" },
+          { internalType: "uint256", name: "startTime", type: "uint256" },
         ],
         internalType: "struct StreamLine.Stream",
         name: "",
@@ -506,14 +580,11 @@ export const wagmiAbi = [
   },
   {
     inputs: [
-      { internalType: "uint256", name: "orderId", type: "uint256" },
-      {
-        internalType: "address",
-        name: "tokenCollateralAddress",
-        type: "address",
-      },
+      { internalType: "string", name: "name", type: "string" },
+      { internalType: "address", name: "streamTokenAddress", type: "address" },
       { internalType: "uint256", name: "amount", type: "uint256" },
       { internalType: "uint256", name: "totalStreamAmount", type: "uint256" },
+      { internalType: "address", name: "streamVault", type: "address" },
       { internalType: "address", name: "receiverAddress", type: "address" },
       { internalType: "uint256", name: "interval", type: "uint256" },
       { internalType: "uint256", name: "duration", type: "uint256" },
@@ -539,7 +610,7 @@ export const wagmiAbi = [
       },
       { internalType: "uint256", name: "repayAmount", type: "uint256" },
     ],
-    name: "repayToken",
+    name: "repayGhoToken",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -572,4 +643,4 @@ export const wagmiAbi = [
     stateMutability: "nonpayable",
     type: "function",
   },
-]  as const;
+] as const;
