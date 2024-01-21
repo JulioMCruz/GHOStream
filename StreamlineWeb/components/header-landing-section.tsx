@@ -8,7 +8,7 @@ import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { Menu, Moon, Sun } from "lucide-react";
 import { useAccount } from "wagmi";
 import ConnectKitHeaderButton from "./connectkit-header-button";
-
+import Image from 'next/image';
 export default function HeaderLandingSection() {
 
   const { isConnected } = useAccount();
@@ -40,7 +40,13 @@ export default function HeaderLandingSection() {
               )
             }
             <Link href="/" className="ml-4 lg:ml-0">
-              <h1 className="text-xl font-bold">Streamline</h1>
+            <Image
+          src="/logo.png" // Corrected path
+          width={120}    // Desired width
+          height={40}   // Desired height
+          alt="Description"
+          className="m-3" // Alt text for accessibility
+        />
             </Link>
           </div>
 
