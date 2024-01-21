@@ -1,7 +1,7 @@
 ### Streamline Architecture
 
-<p align="center" style="border-width: 1px; border-color: black;">
-  <img src="Documents/lfgho-Architecture.jpg" width="650" title="hover text" >
+<p align="center">
+  <img src="Documents/lfgho-Architecture.jpg" width="650" title="Streamline Architecture" >
 </p>
 
 ### StreamLine Contract
@@ -21,8 +21,36 @@ LiquidityPool Address: 0xc01cC5Ad3C89e26301bB2cfce87a515A6e80DBb5
 LiquidityPool Deploy On Polygon Mumbai: https://mumbai.polygonscan.com/address/0xc01cc5ad3c89e26301bb2cfce87a515a6e80dbb5#code
 
 ### Etherscan / polygonscan Test DEMO
-#### StreamLine Video:  https://www.youtube.com/watch?v=mJaIkzzZW-Y
-#### StreamVaults and Cross Chain Video:  https://www.youtube.com/watch?v=9tGVE-GPPxE
+
+#### StreamLine Video:
+<br>
+<iframe
+    width="640"
+    height="480"
+    src="https://www.youtube.com/embed/mJaIkzzZW-Y"
+    frameborder="0"
+    allow="autoplay; encrypted-media"
+    allowfullscreen
+>
+</iframe>
+
+Video Link: [See Streamline video in Youtube (Click Here)](https://www.youtube.com/watch?v=mJaIkzzZW-Y)
+<br>
+
+#### StreamVaults and Cross Chain Video:  
+<br>
+<iframe
+    width="640"
+    height="480"
+    src="https://www.youtube.com/embed/9tGVE-GPPxE"
+    frameborder="0"
+    allow="autoplay; encrypted-media"
+    allowfullscreen
+>
+</iframe>
+
+Video Link: [See StreamVaults and Cross Chain Videoin Youtube (Click Here)](https://www.youtube.com/watch?v=9tGVE-GPPxE)
+
 
 ### Check Status on Chainlink 
 #### Chainlink Automation Status: 
