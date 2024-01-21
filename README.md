@@ -24,32 +24,18 @@ LiquidityPool Deploy On Polygon Mumbai: https://mumbai.polygonscan.com/address/0
 
 #### StreamLine Video:
 <br>
-<iframe
-    width="640"
-    height="480"
-    src="https://www.youtube.com/embed/mJaIkzzZW-Y"
-    frameborder="0"
-    allow="autoplay; encrypted-media"
-    allowfullscreen
->
-</iframe>
+
+[![StreamLine Video](https://img.youtube.com/vi/mJaIkzzZW-Y/0.jpg)](https://www.youtube.com/watch?v=mJaIkzzZW-Y "StreamLine Video")
 
 Video Link: [See Streamline video in Youtube (Click Here)](https://www.youtube.com/watch?v=mJaIkzzZW-Y)
 <br>
 
 #### StreamVaults and Cross Chain Video:  
 <br>
-<iframe
-    width="640"
-    height="480"
-    src="https://www.youtube.com/embed/9tGVE-GPPxE"
-    frameborder="0"
-    allow="autoplay; encrypted-media"
-    allowfullscreen
->
-</iframe>
 
-Video Link: [See StreamVaults and Cross Chain Videoin Youtube (Click Here)](https://www.youtube.com/watch?v=9tGVE-GPPxE)
+[![StreamVaults and Cross Chain](https://img.youtube.com/vi/9tGVE-GPPxE/0.jpg)](https://www.youtube.com/watch?v=9tGVE-GPPxE "StreamVaults and Cross Chain")
+
+Video Link: [See StreamVaults and Cross Chain Video in Youtube (Click Here)](https://www.youtube.com/watch?v=9tGVE-GPPxE)
 
 
 ### Check Status on Chainlink 
