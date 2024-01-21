@@ -1,3 +1,11 @@
+### Streamline Story
+Streamline allows treasury or asset holders to effectively make payments without incurring additional costs. They're simply using the interest earned on their deposits to cover expenses, making it a financially savvy way to manage payments, particularly for larger asset holders. This system not only optimizes the use of idle funds but also introduces a new level of efficiency and convenience in handling payments in the web3 space.
+
+Let's say you need to pay $1000 over 30 days to a Freelancer: 
+Streamline calculates the minimum deposit needed at x% APR, then divides it into daily installments, using interest for cost-free payments. 
+This model is particularly useful for those holding significant crypto assets, as it turns their otherwise idle holdings into a productive financial tool.
+
+
 ### Streamline Architecture
 
 ![lfgho-Architecture](https://github.com/gfkacid/Streamline/assets/125990317/69859667-db0f-492b-b022-070a0b93209a)
