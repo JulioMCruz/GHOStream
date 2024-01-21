@@ -1,8 +1,7 @@
 ### Streamline Architecture
 
-<p align="center">
-  <img src="Documents/lfgho-Architecture.jpg" width="650" title="Streamline Architecture" >
-</p>
+![lfgho-Architecture](https://github.com/gfkacid/Streamline/assets/125990317/69859667-db0f-492b-b022-070a0b93209a)
+
 
 ### StreamLine Contract
 StreamLine Address: 0x63FDDFC18E900D6f252238dF0f232018C212D22D
