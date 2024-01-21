@@ -16,7 +16,7 @@ export default function HeroSection() {
       Let your Assets Interest pay for your expenses.
       </h1>
       <p className="mb-2 md:mb-12 text-md md:text-lg lg:text-xl leading-snug max-w-4xl">
-      Streamline enables to deposit any token, and pay the interest  
+      Streamline enables to deposit any token, and Stream🚀 the interest with GHO
       </p>
       <Image
           src="/eth.png" // Corrected path
