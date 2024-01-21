@@ -1,7 +1,7 @@
 ### Streamline Architecture
 
-<p align="center">
-  <img src="Documents/lfgho-Architecture.jpg" width="650" title="hover text">
+<p align="center" style="border-width: 1px; border-color: black;">
+  <img src="Documents/lfgho-Architecture.jpg" width="650" title="hover text" >
 </p>
 
 ### StreamLine Contract
