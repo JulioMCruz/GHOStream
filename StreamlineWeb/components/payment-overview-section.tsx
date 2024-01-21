@@ -1,44 +1,67 @@
-import { Button } from "@/components/ui/button"
-import { TableHead, TableRow, TableHeader, TableCell, TableBody, Table } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { JSX, SVGProps } from "react"
-import Link from "next/link"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button";
+import {
+  TableHead,
+  TableRow,
+  TableHeader,
+  TableCell,
+  TableBody,
+  Table,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { JSX, SVGProps } from "react";
+import Link from "next/link";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function PaymentsOverviewSection() {
   return (
     <div className="flex flex-col p-6">
-      <h1 className="text-4xl font-bold mb-6">Payments overview</h1>
+      <h1 className="text-2xl font-bold mb-6">Payments overview</h1>
       <Tabs defaultValue="account" className="w-[400px]">
         <TabsList>
           <TabsTrigger value="account">Streaming Payments</TabsTrigger>
           <TabsTrigger value="password">Deposit Positions</TabsTrigger>
         </TabsList>
       </Tabs>
-      <div className="flex justify-between items-center mb-4">
-        <Tabs>
-          <Button className="mr-2" variant="secondary">
-            All payments
-          </Button>
-          <Button className="mr-2" variant="outline">
-            Succeeded
-          </Button>
-          <Button variant="outline">Failed</Button>
-        </Tabs>
-        {/* <Button>Create Stream</Button> */}
+      <div className="flex justify-between items-center mt-4">
+        <div>
+          <Select>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Payment Filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="light">All Payments</SelectItem>
+              <SelectItem value="dark">Successful</SelectItem>
+              <SelectItem value="system">Failed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <Link
           className="inline-flex h-10 items-center justify-center rounded-md px-8 border border-black border-2 shadow-left-bottom"
           href="/deposit"
-          >
+        >
           Create Stream
-        </Link>        
+        </Link>
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto mt-5">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="text-left">Stream Name</TableHead>
-              <TableHead className="text-left">Reciever Address</TableHead>
+              <TableHead className="text-left">Receiver Address</TableHead>
               <TableHead className="text-left">Status</TableHead>
               <TableHead className="text-left">Amount</TableHead>
               <TableHead className="text-left">Current Stream</TableHead>
@@ -53,8 +76,8 @@ export default function PaymentsOverviewSection() {
                 <Badge variant="destructive">Succeeded</Badge>
               </TableCell>
               <TableCell>
-              <CurrencyIcon className="inline-block mr-2" />
-              6737.98
+                <CurrencyIcon className="inline-block mr-2" />
+                6737.98
               </TableCell>
               <TableCell>
                 <CurrencyIcon className="inline-block mr-2" />
@@ -66,7 +89,7 @@ export default function PaymentsOverviewSection() {
         </Table>
       </div>
     </div>
-  )
+  );
 }
 
 function CurrencyIcon(props: JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) {
@@ -89,5 +112,5 @@ function CurrencyIcon(props: JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) 
       <line x1="3" x2="6" y1="21" y2="18" />
       <line x1="21" x2="18" y1="21" y2="18" />
     </svg>
-  )
+  );
 }
