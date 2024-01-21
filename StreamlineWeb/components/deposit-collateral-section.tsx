@@ -50,7 +50,10 @@ export default function DepositCollateralSection() {
         <div className="space-y-4">
           <div className="mb-4">
             <label className="block text-sm font-medium" htmlFor="recipient">Recipient</label>
-            <Input id="recipient" onChange={e => setSpenderAddress(e.target.value)} placeholder="0x123...456" />
+            <Input id="recipient" 
+              value={spenderAddress}
+              onChange={e => setSpenderAddress(e.target.value)} 
+              placeholder="0x123...456" />
           </div>
 
           <div className="flex items-center space-x-2">
@@ -60,7 +63,10 @@ export default function DepositCollateralSection() {
                 <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
                   <BitcoinIcon className="h-4 w-4" />
                 </span>
-                <Input id="amount" type="number" onChange={e => setApproveAmount(e.target.value)} className="rounded-none rounded-r-md"  placeholder="1000" />
+                <Input id="amount" type="number" 
+                  value={approveAmount}
+                  onChange={e => setApproveAmount(e.target.value)} 
+                  className="rounded-none rounded-r-md"  placeholder="1000" />
               </div>
             </div>
           </div>
@@ -73,6 +79,7 @@ export default function DepositCollateralSection() {
                 <Input
                 className="flex-1 block w-[150px] rounded-none rounded-l-md sm:text-sm border-gray-300"
                 id="deposit-period"
+                value={depositPeriodDays}
                 onChange={e => setDepositPeriodDays(e.target.value)}
                 placeholder="60"
                 type="number"

@@ -11,7 +11,7 @@ import { sepolia } from 'viem/chains'
 
 export default function ApproveContractSection() {
 
-  const [approveAmount, setApproveAmount] = useState("10");
+  const [approveAmount, setApproveAmount] = useState("50000000000000000");
   const [spenderAddress, setSpenderAddress] = useState("0x63FDDFC18E900D6f252238dF0f232018C212D22D");
 
   const walletClient = createWalletClient({
@@ -47,7 +47,10 @@ export default function ApproveContractSection() {
         <div className="space-y-4">
           <div className="mb-4">
             <label className="block text-sm font-medium" htmlFor="recipient">Recipient</label>
-            <Input id="recipient" onChange={e => setSpenderAddress(e.target.value)} placeholder="0x123...456" />
+            <Input id="recipient" 
+              value={spenderAddress}
+              onChange={e => setSpenderAddress(e.target.value)} 
+              placeholder="0x123...456" />
           </div>
 
           <div className="flex items-center space-x-2">
@@ -57,7 +60,10 @@ export default function ApproveContractSection() {
                 <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
                   <BitcoinIcon className="h-4 w-4" />
                 </span>
-                <Input id="amount" type="number" onChange={e => setApproveAmount(e.target.value)} className="rounded-none rounded-r-md"  placeholder="1000" />
+                <Input id="amount" 
+                  type="number" 
+                  value={approveAmount}
+                  onChange={e => setApproveAmount(e.target.value)} className="rounded-none rounded-r-md"  placeholder="1000" />
               </div>
             </div>
           </div>
