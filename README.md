@@ -1,3 +1,9 @@
+### Streamline Architecture
+
+<p align="center">
+  <img src="Documents/lfgho-Architecture.jpg" width="650" title="hover text">
+</p>
+
 ### StreamLine Contract
 StreamLine Address: 0x63FDDFC18E900D6f252238dF0f232018C212D22D
 StreamLine Deploy On Sepolia: https://sepolia.etherscan.io/address/0x63fddfc18e900d6f252238df0f232018c212d22d#readContract
