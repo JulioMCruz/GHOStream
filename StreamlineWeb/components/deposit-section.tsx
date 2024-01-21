@@ -2,7 +2,8 @@
 
 import { Label } from '@/components/ui/label'
 import CreateStreamSection from './create-stream-section'
-import ApproveContractSection from './approve-contract'
+import ApproveContractSection from './approve-deposit-section'
+import DepositCollateralSection from './deposit-collateral-section'
 
 
 export default function DepositSection() {
@@ -12,6 +13,8 @@ export default function DepositSection() {
       {/* <Label className="text-2xl font-bold">Streamline Deposit</Label> */}
 
       <ApproveContractSection />
+       <br />
+       <DepositCollateralSection />
        <br />
       <CreateStreamSection />
    </div>
