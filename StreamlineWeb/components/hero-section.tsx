@@ -6,7 +6,7 @@ export default function HeroSection() {
     <div className=" pt-[20px] md:pt-[50px] lg:pt-[100px] pb-[5px] md:pb-[25px] flex flex-col items-center justify-center text-center px-4">
         
         <Image
-          src="/Group 3.png" // Corrected path
+          src="/logo.png" // Corrected path
           width={300}    // Desired width
           height={150}   // Desired height
           alt="Description"
