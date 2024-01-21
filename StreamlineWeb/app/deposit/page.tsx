@@ -6,7 +6,9 @@ export default function Page() {
         <>
             <HeaderSection />
             <div className="min-h-viewport-minus-sections">
+                
                 <DepositSection />
+
             </div>
         </>
     )
