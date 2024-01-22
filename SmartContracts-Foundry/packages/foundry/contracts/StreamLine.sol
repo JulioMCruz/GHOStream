@@ -29,6 +29,7 @@ import {IERC20} from "aave-v3-core/contracts/dependencies/openzeppelin/contracts
 import {IPool} from "aave-v3-core/contracts/interfaces/IPool.sol";
 import {StreamVaults} from "./StreamVaults.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {IDefaultInterestRateStrategy} from "aave-v3-core/contracts/interfaces/IDefaultInterestRateStrategy.sol";
 
 /*
  * @title StreamLine
@@ -62,6 +63,8 @@ contract StreamLine is AutomationCompatible, ReentrancyGuard {
     address private immutable i_streamVaults;
     IPool private immutable i_aavePool;
     address private immutable i_gho;
+    IDefaultInterestRateStrategy private immutable i_ghoIRS;
+    IDefaultInterestRateStrategy private immutable i_daiIRS;
     uint256 private constant DAYS_IN_YEAR = 365;
     uint256 private constant DAI_CURRENT_APR = 2000000000000000; // In WEI
     uint256 private constant LINK_CURRENT_APR = 800000000000000000; // In WEI
@@ -175,7 +178,9 @@ contract StreamLine is AutomationCompatible, ReentrancyGuard {
         address gho,
         address[] memory tokenAddresses,
         address[] memory priceFeedAddresses,
-        address streamVaultsAddress
+        address streamVaultsAddress,
+        address ghoIRS,
+        address daiIRS
     ) {
         if (tokenAddresses.length != priceFeedAddresses.length) {
             revert StreamLine__TokenAddressesAndPriceFeedAddressesAmountsDontMatch();
@@ -189,6 +194,8 @@ contract StreamLine is AutomationCompatible, ReentrancyGuard {
         i_aavePool = IPool(aavePool);
         i_gho = gho;
         i_streamVaults = streamVaultsAddress;
+        i_ghoIRS = IDefaultInterestRateStrategy(ghoIRS);
+        i_daiIRS = IDefaultInterestRateStrategy(daiIRS);
     }
     /////////////////////////////////
     // External / Public Functions //
@@ -476,7 +483,7 @@ contract StreamLine is AutomationCompatible, ReentrancyGuard {
      * @return The USD value of the specified token amount.
      * @dev This function uses the Chainlink price feed for conversion rates.
      */
-    function _getUsdValue(address token, uint256 amount) private view returns (uint256) {
+    function _getUsdValue(address token, uint256 amount) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
         (, int256 price,,,) = priceFeed.latestRoundData();
         // for example: 1 ETH = 1000 USD
@@ -562,26 +569,26 @@ contract StreamLine is AutomationCompatible, ReentrancyGuard {
      */
     function calculateDepositInterest(DepositTokenType tokenType, uint256 depositAmountWei, uint256 depositPeriodDays)
         public
-        pure
+        view
         returns (uint256)
     {
         uint256 numerator;
         uint256 denominator;
 
         if (tokenType == DepositTokenType.DAI) {
-            numerator = 2;
-            denominator = 1000;
+            numerator = getDaiInterestRateStrategy(); // 0.002(0.2%)
+            denominator = 100000000;
         } else if (tokenType == DepositTokenType.LINK) {
-            numerator = 80;
-            denominator = 100;
+            numerator = 72000000000000000000000000000; // 0.72(72%)
+            denominator = 100000000000;
         } else {
             revert("Invalid token type");
         }
 
-        uint256 maxLoanInUsd = (depositAmountWei * numerator) / denominator;
-        uint256 depositInterest = (maxLoanInUsd * depositPeriodDays) / DAYS_IN_YEAR;
-
-        return depositInterest; // In WEI
+        uint256 variableInterestRateInWei = numerator / denominator;
+        uint256 depositInterest = (depositAmountWei * variableInterestRateInWei) / 1e18;
+        uint256 perDayDepositInterest = (depositInterest * depositPeriodDays) / DAYS_IN_YEAR;
+        return perDayDepositInterest;
     }
 
     /**
@@ -593,16 +600,17 @@ contract StreamLine is AutomationCompatible, ReentrancyGuard {
      */
     function calculateLoanRepaymentInterest(uint256 borrowedAmountWei, uint256 borrowPeriodDays)
         public
-        pure
+        view
         returns (uint256)
     {
-        uint256 numerator = 2;
-        uint256 denominator = 100;
+        uint256 numerator = getGhoInterestRateStrategy(); // 0.02(2%)
+        uint256 denominator = 100000000000;
+        uint256 ghoVariableInterestRateInWei = numerator / denominator;
 
-        uint256 maxLoanInUsd = (borrowedAmountWei * numerator) / denominator;
-        uint256 loanRepaymentInterest = (maxLoanInUsd * borrowPeriodDays) / DAYS_IN_YEAR;
+        uint256 loanInterest = (borrowedAmountWei * ghoVariableInterestRateInWei) / 1e18;
+        uint256 perDayLoanInterest = (loanInterest * borrowPeriodDays) / DAYS_IN_YEAR;
 
-        return loanRepaymentInterest; // // In WEI
+        return perDayLoanInterest;
     }
 
     /**
@@ -612,15 +620,11 @@ contract StreamLine is AutomationCompatible, ReentrancyGuard {
      * @param borrowPeriodDays The duration of the loan repayment period in days.
      * @return totalDebt The total debt amount to be repaid, including principal and interest, in WEI.
      */
-    function calculateFinalDebt(uint256 borrowedAmountWei, uint256 borrowPeriodDays) public pure returns (uint256) {
-        uint256 numerator = 2;
-        uint256 denominator = 100;
+    function calculateFinalDebt(uint256 borrowedAmountWei, uint256 borrowPeriodDays) public view returns (uint256) {
+        uint256 loanRepaymentInterest = calculateLoanRepaymentInterest(borrowedAmountWei, borrowPeriodDays);
+        uint256 totalDebt = borrowedAmountWei + loanRepaymentInterest;
 
-        uint256 maxLoanInUsd = (borrowedAmountWei * numerator) / denominator;
-        uint256 interestAccrued = (maxLoanInUsd * borrowPeriodDays) / DAYS_IN_YEAR;
-        uint256 totalDebt = borrowedAmountWei + interestAccrued;
-
-        return totalDebt; // // In WEI Principal + interest
+        return totalDebt; // // In WEI Principal + VariantInterestRate, GHO Token
     }
 
     /**
@@ -666,7 +670,7 @@ contract StreamLine is AutomationCompatible, ReentrancyGuard {
     function calculateRequiredCollateralForGhoBorrow(
         uint256 borrowAmount // in WEI
     ) external pure returns (uint256 requiredCollateral) {
-        requiredCollateral = (borrowAmount * DENOMINATOR) / NUMBERATOR;
+        requiredCollateral = (borrowAmount * DENOMINATOR) / NUMBERATOR; // LTV: 75%
         return requiredCollateral; // In WEI
     }
 
@@ -797,6 +801,16 @@ contract StreamLine is AutomationCompatible, ReentrancyGuard {
         return s_receiverTotxStatus[receiver][streamId];
     }
 
+    function getGhoInterestRateStrategy() public view returns (uint256 ghoVariableInterestRate) {
+        ghoVariableInterestRate = i_ghoIRS.getBaseVariableBorrowRate();
+        return ghoVariableInterestRate;
+    }
+
+    function getDaiInterestRateStrategy() public view returns (uint256 daiVariableInterestRate) {
+        daiVariableInterestRate = i_daiIRS.OPTIMAL_STABLE_TO_TOTAL_DEBT_RATIO();
+        return daiVariableInterestRate;
+    }
+
     /**
      * ß
      * @notice Retrieves an array of stream IDs associated with a specific user.
@@ -806,6 +820,7 @@ contract StreamLine is AutomationCompatible, ReentrancyGuard {
      * @dev The function queries the internal mapping to determine the number of streams associated with the user,
      * and then populates an array with the corresponding stream IDs. The resulting array is then returned.
      */
+
     function getUserStreamIds(address user) external view returns (uint256[] memory) {
         uint256 streamCount = s_userToStreamId[user];
         uint256[] memory streamIds = new uint256[](streamCount);
