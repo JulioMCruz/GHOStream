@@ -184,6 +184,8 @@ contract StreamVaults is OwnerIsCreator, ReentrancyGuard {
             revert StreamVaults__TransferFailed();
         }
 
+        s_balances[msg.sender] -= amount;
+
         emit WithdrawToken(msg.sender, amount);
     }
 
